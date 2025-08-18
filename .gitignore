@@ -1,27 +1,48 @@
-# Django
-*.log
-*.pot
-*.pyc
-__pycache__/
-local_settings.py
-.db.sqlite3
-# Media and static files
-media/
-staticfiles/
-static/
-# Django migrations
-*/migrations/*
-!*/migrations/__init__.py
-# Environment
-.env
+# 仮想環境
 venv/
-ENV/
-.envrc
-# VS Code
+env/
+.venv/
+.env/
+
+# 環境変数ファイル
+.env
+.env.*
+!/.env.example
+
+# Pythonキャッシュ
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Django関連
+db.sqlite3
+db.sqlite3-journal
+/media/
+/static_root/
+/staticfiles/
+
+# ログ
+*.log
+logs/
+
+# IDE/エディタ
+.idea/
 .vscode/
-# macOS
+*.swp
+*.swo
+
+# OS固有
 .DS_Store
-# Poetry
-poetry.lock
-# Other
-*.sqlite3
+Thumbs.db
+
+# テスト/カバレッジ
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# ビルド/パッケージ
+build/
+dist/
+*.egg-info/
