@@ -1,0 +1,17 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Docker
+.dockerignore
+Dockerfile
+
+# その他
+.vscode/
+.idea/
+/.env
