@@ -17,9 +17,15 @@ Including another URLconf
 from django.urls import include, path
 from django.contrib import admin
 from django.views.generic import RedirectView
+from django.conf import settings
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("polls/", include("apps.polls.urls")),
     path("", RedirectView.as_view(url="/polls/")),
 ]
+
+if not getattr(settings, "TESTING", False):
+    from debug_toolbar.toolbar import debug_toolbar_urls
+    urlpatterns += debug_toolbar_urls()
