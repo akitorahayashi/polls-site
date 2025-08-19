@@ -13,3 +13,6 @@ jobs:
 
   run-tests:
     uses: ./.github/workflows/run-tests.yml
+
+  docker-build:
+    uses: ./.github/workflows/docker-build.yml
