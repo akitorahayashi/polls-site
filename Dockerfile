@@ -13,22 +13,22 @@ WORKDIR /app
 
 # --- 依存関係のインストール ---
 # pipxをインストールし、pipx経由でpoetryをインストール
-RUN pip install pipx && pipx install poetry
-
-# pipxの実行パスを環境変数に追加
-ENV PATH="/root/.local/bin:${PATH}"
+# 再現性のためバージョンを固定し、キャッシュ無効化でレイヤサイズを削減
+RUN pip install --no-cache-dir pipx \
+    && pipx install "poetry==1.8.3"
 
 # poetry.lockとpyproject.tomlをコピー
 COPY poetry.lock pyproject.toml ./
-# Poetryの設定と依存関係のインストール
-# --no-root: プロジェクト自体はインストールしない
-# --only main: mainの依存関係のみインストール
-RUN poetry config virtualenvs.create true \
-    && poetry config virtualenvs.in-project true \
-    && poetry install --no-root --only main
 
-# Poetryの仮想環境をPATHに通す
-ENV PATH="/app/.venv/bin:${PATH}"
+# Poetryの設定と依存関係のインストール
+# RUNコマンド内で一時的にPATHを設定することで、後段のENVとまとめてレイヤを削減
+RUN export PATH="/root/.local/bin:${PATH}" && \
+    poetry config virtualenvs.create true && \
+    poetry config virtualenvs.in-project true && \
+    poetry install --no-root --only main --no-interaction --no-ansi
+
+# アプリケーション実行に必要なPATHをまとめて設定
+ENV PATH="/app/.venv/bin:/root/.local/bin:${PATH}"
 
 # --- アプリケーションコードのコピー ---
 COPY . .
