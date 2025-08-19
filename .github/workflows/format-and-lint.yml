@@ -1,11 +1,10 @@
-# .github/workflows/format-and-lint.yml
 name: Format and Lint
 
 on:
   workflow_call:
 
 jobs:
-  linting:
+  format-and-list:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
