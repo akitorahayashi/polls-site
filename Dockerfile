@@ -25,7 +25,7 @@ COPY poetry.lock pyproject.toml ./
 RUN export PATH="/root/.local/bin:${PATH}" && \
     poetry config virtualenvs.create true && \
     poetry config virtualenvs.in-project true && \
-    poetry install --no-root --only main --no-interaction --no-ansi
+    poetry install --no-root --without dev --no-interaction --no-ansi
 
 # アプリケーション実行に必要なPATHをまとめて設定
 ENV PATH="/app/.venv/bin:/root/.local/bin:${PATH}"
