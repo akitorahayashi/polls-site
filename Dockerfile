@@ -13,6 +13,10 @@ WORKDIR /app
 
 # --- 依存関係のインストール ---
 RUN pip install pipx && pipx ensurepath && pipx install poetry
+
+# Add pipx's bin directory to the PATH
+ENV PATH="/root/.local/bin:${PATH}"
+
 COPY poetry.lock pyproject.toml ./
 RUN poetry config virtualenvs.create true \
     && poetry config virtualenvs.in-project true \

@@ -6,6 +6,23 @@ on:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    # テスト用のPostgreSQLサービスを定義
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_polls_db
+          POSTGRES_USER: test_polls_user
+          POSTGRES_PASSWORD: test_polls_password
+        ports:
+          - 5432:5432
+        # DBが起動完了するのを待つためのヘルスチェック
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,6 +41,12 @@ jobs:
         run: |
           poetry install --no-root
 
-      - name: Run Django Tests
+      - name: Run Django Tests¥
+        env:
+          POSTGRES_DB: test_polls_db
+          POSTGRES_USER: test_polls_user
+          POSTGRES_PASSWORD: test_polls_password
+          POSTGRES_HOST: 127.0.0.1 
+          POSTGRES_PORT: 5432      
         run: |
           poetry run python manage.py test polls
