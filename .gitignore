@@ -46,3 +46,6 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+
+# Ruff
+.ruff_cache

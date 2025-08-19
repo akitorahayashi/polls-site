@@ -5,6 +5,7 @@ from django.test import TestCase
 
 from apps.polls.models import Question
 
+
 def create_question(question_text, days):
     """
     Create a question with the given `question_text` and published the
