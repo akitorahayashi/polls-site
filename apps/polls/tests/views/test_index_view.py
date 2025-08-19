@@ -1,19 +1,7 @@
-import datetime
-from django.urls import reverse
-from django.utils import timezone
 from django.test import TestCase
+from django.urls import reverse
 
-from apps.polls.models import Question
-
-
-def create_question(question_text, days):
-    """
-    Create a question with the given `question_text` and published the
-    given number of `days` offset to now (negative for questions published
-    in the past, positive for questions that have yet to be published).
-    """
-    time = timezone.now() + datetime.timedelta(days=days)
-    return Question.objects.create(question_text=question_text, pub_date=time)
+from apps.polls.tests.helpers import create_choice, create_question
 
 
 class QuestionIndexViewTests(TestCase):
@@ -32,11 +20,21 @@ class QuestionIndexViewTests(TestCase):
         index page.
         """
         question = create_question(question_text="Past question.", days=-30)
+        create_choice(question, "Choice 1")
         response = self.client.get(reverse("polls:index"))
         self.assertQuerySetEqual(
             response.context["latest_question_list"],
             [question],
         )
+
+    def test_question_with_no_choices(self):
+        """
+        Questions with no choices are not displayed on the index page.
+        """
+        create_question(question_text="Question with no choices.", days=-5)
+        response = self.client.get(reverse("polls:index"))
+        self.assertContains(response, "No polls are available.")
+        self.assertQuerySetEqual(response.context["latest_question_list"], [])
 
     def test_future_question(self):
         """
@@ -54,7 +52,9 @@ class QuestionIndexViewTests(TestCase):
         are displayed.
         """
         question = create_question(question_text="Past question.", days=-30)
-        create_question(question_text="Future question.", days=30)
+        create_choice(question, "Choice 1")
+        future_question = create_question(question_text="Future question.", days=30)
+        create_choice(future_question, "Choice 1")
         response = self.client.get(reverse("polls:index"))
         self.assertQuerySetEqual(
             response.context["latest_question_list"],
@@ -66,7 +66,9 @@ class QuestionIndexViewTests(TestCase):
         The questions index page may display multiple questions.
         """
         question1 = create_question(question_text="Past question 1.", days=-30)
+        create_choice(question1, "Choice 1")
         question2 = create_question(question_text="Past question 2.", days=-5)
+        create_choice(question2, "Choice 1")
         response = self.client.get(reverse("polls:index"))
         self.assertQuerySetEqual(
             response.context["latest_question_list"],
