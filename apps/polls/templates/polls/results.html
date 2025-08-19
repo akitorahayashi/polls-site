@@ -1,23 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 
 <head>
-    <title>Poll Results</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results: {{ question.question_text }}</title>
     {% load static %}
-    <link rel="stylesheet" href="{% static 'polls/style.css' %}">
+    <link rel="stylesheet" href="{% static 'polls/css/results.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <h1>{{ question.question_text }}</h1>
+    <div class="container">
+        <header>
+            <h1><a href="{% url 'polls:index' %}" class="header-title">Polls Application</a></h1>
+        </header>
+        <main>
+            <h2 class="poll-question">{{ question.question_text }}</h2>
 
-    <ul>
-        {% for choice in question.choices.all %}
-        <li>{{ choice.choice_text }} -- {{ choice.votes }} vote{{ choice.votes|pluralize }}</li>
-        {% endfor %}
-    </ul>
+            <ul class="results-list">
+                {% for choice in question.choices.all %}
+                <li class="result-item">
+                    <span class="choice-text">{{ choice.choice_text }}</span>
+                    <span class="vote-count">{{ choice.votes }} vote{{ choice.votes|pluralize }}</span>
+                </li>
+                {% endfor %}
+            </ul>
 
-    <a href="{% url 'polls:detail' question.id %}">Vote again?</a><br>
-    <a href="{% url 'polls:index' %}">Back to the List</a>
+            <div class="action-links">
+                <a href="{% url 'polls:detail' question.id %}" class="action-link">Vote again?</a>
+                <a href="{% url 'polls:index' %}" class="action-link">Back to the List</a>
+            </div>
+        </main>
+    </div>
 </body>
 
 </html>

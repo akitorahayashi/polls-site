@@ -1,0 +1,114 @@
+/* --- Common Styles --- */
+body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background-color: #f4f6f8;
+    color: #212529;
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    padding: 20px 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+header {
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin: 0;
+    text-align: center;
+}
+
+.header-title {
+    text-decoration: none;
+    color: #212529;
+}
+
+main {
+    padding: 0;
+}
+
+/* --- Results Page Specific Styles --- */
+.poll-question {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.results-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 30px 0;
+}
+
+.result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+}
+
+.choice-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.vote-count {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #007bff;
+}
+
+.action-links {
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.action-link {
+    text-decoration: none;
+    color: #007bff;
+    font-size: 1rem;
+}
+
+.action-link:hover {
+    text-decoration: underline;
+}
+
+
+/* --- Responsive Design --- */
+@media (max-width: 600px) {
+    .container {
+        padding: 15px 20px;
+    }
+
+    header h1 {
+        font-size: 2rem;
+    }
+
+    .poll-question {
+        font-size: 1.5rem;
+    }
+
+    .result-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}
