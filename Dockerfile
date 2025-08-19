@@ -12,15 +12,23 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # --- 依存関係のインストール ---
-RUN pip install pipx && pipx ensurepath && pipx install poetry
+# pipxをインストールし、pipx経由でpoetryをインストール
+RUN pip install pipx && pipx install poetry
 
-# Add pipx's bin directory to the PATH
+# pipxの実行パスを環境変数に追加
 ENV PATH="/root/.local/bin:${PATH}"
 
+# poetry.lockとpyproject.tomlをコピー
 COPY poetry.lock pyproject.toml ./
+# Poetryの設定と依存関係のインストール
+# --no-root: プロジェクト自体はインストールしない
+# --only main: mainの依存関係のみインストール
 RUN poetry config virtualenvs.create true \
     && poetry config virtualenvs.in-project true \
-    && poetry install --no-root --without dev
+    && poetry install --no-root --only main
+
+# Poetryの仮想環境をPATHに通す
+ENV PATH="/app/.venv/bin:${PATH}"
 
 # --- アプリケーションコードのコピー ---
 COPY . .
