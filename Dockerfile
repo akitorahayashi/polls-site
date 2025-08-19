@@ -20,7 +20,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 COPY poetry.lock pyproject.toml ./
 RUN poetry config virtualenvs.create true \
     && poetry config virtualenvs.in-project true \
-    && poetry install --no-root --no-dev
+    && poetry install --no-root --without dev
 
 # --- アプリケーションコードのコピー ---
 COPY . .
