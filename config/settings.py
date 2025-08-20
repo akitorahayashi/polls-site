@@ -67,7 +67,7 @@ if not TESTING:
         "debug_toolbar.middleware.DebugToolbarMiddleware",
     ]
 
-ROOT_URLCONF = "polls-site.urls"
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
@@ -84,7 +84,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "polls-site.wsgi.application"
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
