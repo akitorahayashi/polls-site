@@ -358,6 +358,25 @@ test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=8.3.4)", "pytest-
 type = ["mypy (>=1.14.1)"]
 
 [[package]]
+name = "polls-app"
+version = "0.1.0"
+description = "A simple Django polling application."
+optional = false
+python-versions = ">=3.12"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+django = ">=5.0"
+
+[package.source]
+type = "git"
+url = "https://github.com/akitorahayashi/polls-app.git"
+reference = "HEAD"
+resolved_reference = "526ec2ab6d225f21448dbebc020db0c675d4e9fe"
+
+[[package]]
 name = "prompt-toolkit"
 version = "3.0.51"
 description = "Library for building powerful interactive command lines in Python"
@@ -602,4 +621,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "41345392abbf75eb10e07473aaebed16fadc6bce0e4edbd1150774263d2c2d00"
+content-hash = "f2a717b8ed5613eecb0d989e8c5427f3ef3aa1711a7df0cddfda45b93c9186bc"

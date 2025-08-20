@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  format-and-list:
+  format-and-lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -13,7 +13,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version-file: .python-version
 
       - name: Install and configure Poetry
         run: |
