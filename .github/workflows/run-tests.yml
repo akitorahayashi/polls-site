@@ -20,4 +20,4 @@ jobs:
       - name: Run Django Tests in Docker Container
         run: |
           docker pull ghcr.io/${{ github.repository }}:${{ github.sha }}
-          docker run --rm ghcr.io/${{ github.repository }}:${{ github.sha }} python manage.py test
+          docker run --rm ghcr.io/${{ github.repository }}:${{ github.sha }} poetry run python manage.py test
