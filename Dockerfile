@@ -1,35 +1,28 @@
-# --- ベースイメージの指定 ---
-# 公式のPython 3.12の軽量版イメージを土台として使用
 FROM python:3.12-slim
 
-# --- 環境変数の設定 ---
 # Pythonが.pycバイトコードファイルを生成しないようにする
 ENV PYTHONDONTWRITEBYTECODE=1
 # 標準出力・標準エラー出力をバッファリングせず、ログをリアルタイムで表示
 ENV PYTHONUNBUFFERED=1
 
-# --- 作業ディレクトリの作成と設定 ---
+# 作業ディレクトリの作成
 WORKDIR /app
 
-# --- 依存関係のインストール ---
+# 依存関係のインストール
 RUN pip install pipx && pipx install poetry
-
-# Add pipx's bin directory to the PATH
-ENV PATH="/root/.local/bin:${PATH}"
+# Poetryの仮想環境をPATHに通す
+ENV PATH="/app/.venv/bin:${PATH}"
 
 COPY poetry.lock pyproject.toml ./
 RUN poetry config virtualenvs.create true \
     && poetry config virtualenvs.in-project true \
     && poetry install --no-root --only main
 
-# --- アプリケーションコードのコピー ---
+# アプリケーションコードのコピー
 COPY . .
 
-# --- ポートの開放 ---
+# ポートの開放
 EXPOSE 8000
 
-# Poetryの仮想環境をPATHに通す
-ENV PATH="/app/.venv/bin:${PATH}"
-
-# --- コンテナ起動コマンド ---
+# コンテナを起動
 CMD ["gunicorn", "polls-site.wsgi:application", "--bind", "0.0.0.0:8000"]

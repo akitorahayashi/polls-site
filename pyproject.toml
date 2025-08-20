@@ -8,7 +8,8 @@ dependencies = [
     "django (>=5.2.5,<6.0.0)",
     "django-debug-toolbar (>=6.0.0,<7.0.0)",
     "gunicorn (>=23.0.0,<24.0.0)",
-    "psycopg2-binary (>=2.9.10,<3.0.0)"
+    "psycopg2-binary (>=2.9.10,<3.0.0)",
+    "polls-app @ git+ssh://git@github.com/akitorahayashi/polls-app.git"
 ]
 
 [build-system]
@@ -23,3 +24,29 @@ ipython = "^9.4.0"
 black = "^25.1.0"
 ruff = "^0.12.9"
 
+[tool.black]
+target-version = ['py312']
+exclude = '''
+/(\
+    \.git
+    | \.mypy_cache
+    | \.venv
+    | build
+    | dist
+)/
+'''
+
+[tool.ruff]
+target-version = "py312"
+
+exclude = [
+	"__pycache__",
+	"migrations",
+	"db.sqlite3",
+	"*.pyc"
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+# E501 (line too long) is ignored
+ignore = ["E501"]

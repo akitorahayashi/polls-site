@@ -11,8 +11,9 @@ jobs:
   format-and-lint:
     uses: ./.github/workflows/format-and-lint.yml
 
-  run-tests:
-    uses: ./.github/workflows/run-tests.yml
-
   docker-build:
     uses: ./.github/workflows/docker-build.yml
+
+  run-tests:
+    needs: docker-build
+    uses: ./.github/workflows/run-tests.yml
