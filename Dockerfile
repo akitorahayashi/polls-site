@@ -11,7 +11,7 @@ WORKDIR /app
 # 依存関係のインストール
 RUN pip install pipx && pipx install poetry
 # Poetryの仮想環境をPATHに通す
-ENV PATH="/app/.venv/bin:${PATH}"
+ENV PATH="/root/.local/bin:${PATH}"
 
 COPY poetry.lock pyproject.toml ./
 RUN poetry config virtualenvs.create true \
