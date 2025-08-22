@@ -2,25 +2,16 @@ name: Run Tests
 
 on:
   workflow_call:
-    inputs:
-      image-tag:
-        required: true
-        type: string
 
 jobs:
   run-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Download image artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: polls-site-image
+      - name: Create .env file
+        run: cp .env.example .env
 
-      - name: Load Docker image
-        run: |
-          docker load -i polls-site-image.tar
-
-      - name: Run Django Tests in Docker Container
-        run: |
-          docker run --rm ${{ inputs.image-tag }} poetry run python manage.py test
+      - name: Run tests
+        run: docker compose run --rm test

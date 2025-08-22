@@ -2,23 +2,44 @@ version: '3.8'
 
 services:
   web:
-    build: .
-    command:
-      - poetry
-      - run
-      - gunicorn
-      - config.wsgi:application
-      - --bind
-      - 0.0.0.0:8000
+    build:
+      context: .
+      target: production
+    image: polls-site-web
+    env_file: .env
     volumes:
+      - .:/app
       - static_volume:/app/staticfiles
-    environment:
-      - POSTGRES_DB=polls_db
-      - POSTGRES_USER=polls_user
-      - POSTGRES_PASSWORD=polls_password
-      - POSTGRES_HOST=db
     depends_on:
       - db
+
+  test:
+    build:
+      context: .
+      target: builder
+    env_file: .env
+    volumes:
+      - ./config:/app/config
+      - ./manage.py:/app/manage.py
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./poetry.lock:/app/poetry.lock
+      - ./tests:/app/tests
+    command: sh -c "poetry run pytest"
+    depends_on:
+      - db
+
+  lint:
+    build:
+      context: .
+      target: builder
+    env_file: .env
+    volumes:
+      - ./config:/app/config
+      - ./manage.py:/app/manage.py
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./poetry.lock:/app/poetry.lock
+      - ./tests:/app/tests
+    command: sh -c "poetry run ruff check . && poetry run ruff format --check ."
 
   db:
     image: postgres:15
