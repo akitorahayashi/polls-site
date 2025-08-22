@@ -25,10 +25,7 @@ services:
       - ./tests:/app/tests
     command: sh -c "poetry run pytest"
     environment:
-      <<: &db_test_env
-      POSTGRES_DB: test_polls_db
-      POSTGRES_USER: test_polls_user
-      POSTGRES_PASSWORD: test_polls_password
+      <<: *db_test_env
       POSTGRES_HOST: db_test
     depends_on:
       db_test:
@@ -47,8 +44,10 @@ services:
     image: postgres:15
     tmpfs:
       - /var/lib/postgresql/data
-    environment:
-      <<: *db_test_env
+    environment: &db_test_env
+      POSTGRES_DB: test_polls_db
+      POSTGRES_USER: test_polls_user
+      POSTGRES_PASSWORD: test_polls_password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h localhost"]
       interval: 5s
