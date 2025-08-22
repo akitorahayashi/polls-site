@@ -31,7 +31,8 @@ services:
       POSTGRES_PASSWORD: test_polls_password
       POSTGRES_HOST: db_test
     depends_on:
-      - db_test
+      db_test:
+        condition: service_healthy
 
   db:
     image: postgres:15
@@ -48,6 +49,12 @@ services:
       - /var/lib/postgresql/data
     environment:
       <<: *db_test_env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
 
   nginx:
     build: ./nginx
