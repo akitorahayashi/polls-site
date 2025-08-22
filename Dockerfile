@@ -5,12 +5,6 @@ FROM python:3.11-slim-bullseye AS base
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        build-essential \
-        libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 RUN pip install poetry
 
 # Stage 2: builder
@@ -20,6 +14,12 @@ FROM base AS builder
 WORKDIR /app
 
 COPY poetry.lock pyproject.toml ./
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN poetry config virtualenvs.in-project true \
     && poetry install --no-root
