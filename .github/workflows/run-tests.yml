@@ -2,6 +2,10 @@ name: Run Tests
 
 on:
   workflow_call:
+    inputs:
+      image-tag:
+        required: true
+        type: string
 
 jobs:
   run-tests:
@@ -19,5 +23,5 @@ jobs:
 
       - name: Run Django Tests in Docker Container
         run: |
-          docker pull ghcr.io/${{ github.repository }}:${{ github.sha }}
-          docker run --rm ghcr.io/${{ github.repository }}:${{ github.sha }} poetry run python manage.py test
+          docker pull ${{ inputs.image-tag }}
+          docker run --rm ${{ inputs.image-tag }} poetry run python manage.py test
