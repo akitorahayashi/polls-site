@@ -16,7 +16,10 @@ jobs:
       contents: read
       packages: write
     uses: ./.github/workflows/docker-build.yml
+    secrets: inherit
 
   run-tests:
     needs: docker-build
     uses: ./.github/workflows/run-tests.yml
+    with:
+      image-tag: ${{ needs.docker-build.outputs.image-tag }}

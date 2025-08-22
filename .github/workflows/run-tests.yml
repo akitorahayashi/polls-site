@@ -2,22 +2,25 @@ name: Run Tests
 
 on:
   workflow_call:
+    inputs:
+      image-tag:
+        required: true
+        type: string
 
 jobs:
   run-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          name: polls-site-image
+
+      - name: Load Docker image
+        run: |
+          docker load -i polls-site-image.tar
 
       - name: Run Django Tests in Docker Container
         run: |
-          docker pull ghcr.io/${{ github.repository }}:${{ github.sha }}
-          docker run --rm ghcr.io/${{ github.repository }}:${{ github.sha }} poetry run python manage.py test
+          docker run --rm ${{ inputs.image-tag }} poetry run python manage.py test

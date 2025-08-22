@@ -1,32 +1,48 @@
-name: Docker Build
+name: Build and Push Docker Image
 
 on:
   workflow_call:
+    outputs:
+      image-tag:
+        description: "The tag of the built and pushed Docker image."
+        value: ${{ jobs.build-and-push.outputs.image-tag }}
 
 jobs:
-  docker-build:
+  build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
     permissions:
       contents: read
       packages: write
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          images: ghcr.io/${{ github.repository }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push Docker image
+      - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
-          push: true
-          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Save Docker image
+        run: |
+          docker save $(echo "${{ steps.meta.outputs.tags }}" | cut -d',' -f1) -o polls-site-image.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: polls-site-image
+          path: polls-site-image.tar
+          retention-days: 3
