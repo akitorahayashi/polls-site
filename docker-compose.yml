@@ -11,14 +11,22 @@ services:
       - --bind
       - 0.0.0.0:8000
     volumes:
+      - .:/app
       - static_volume:/app/staticfiles
     environment:
-      - POSTGRES_DB=polls_db
-      - POSTGRES_USER=polls_user
-      - POSTGRES_PASSWORD=polls_password
-      - POSTGRES_HOST=db
+      - DATABASE_URL=postgresql://polls_user:polls_password@db:5432/polls_db
     depends_on:
       - db
+
+  test:
+    build: .
+    command: poetry run pytest
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=sqlite:///db.sqlite3
+      - SECRET_KEY=test
+      - DEBUG=True
 
   db:
     image: postgres:15
