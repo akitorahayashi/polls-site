@@ -28,19 +28,6 @@ services:
     depends_on:
       - db
 
-  lint:
-    build:
-      context: .
-      target: builder
-    env_file: .env
-    volumes:
-      - ./config:/app/config
-      - ./manage.py:/app/manage.py
-      - ./pyproject.toml:/app/pyproject.toml
-      - ./poetry.lock:/app/poetry.lock
-      - ./tests:/app/tests
-    command: sh -c "poetry run ruff check . && poetry run ruff format --check ."
-
   db:
     image: postgres:15
     volumes:
