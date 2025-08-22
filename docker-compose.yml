@@ -21,6 +21,8 @@ services:
     volumes:
       - .:/app
     command: poetry run pytest
+    depends_on:
+      - db
 
   lint:
     build:

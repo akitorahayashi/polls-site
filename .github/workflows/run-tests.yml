@@ -13,8 +13,5 @@ jobs:
       - name: Create .env file
         run: cp .env.example .env
 
-      - name: Start services
-        run: docker-compose up -d
-
       - name: Run tests
-        run: docker-compose exec web poetry run pytest
+        run: docker compose run --rm test
