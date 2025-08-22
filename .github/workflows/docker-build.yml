@@ -1,11 +1,7 @@
 name: Build and Push Docker Image
 
 on:
-  workflow_call:
-    outputs:
-      image-tag:
-        description: "The tag of the built and pushed Docker image."
-        value: ${{ jobs.build-and-push.outputs.image-tag }}
+  workflow_dispatch:
 
 jobs:
   build-and-push:
