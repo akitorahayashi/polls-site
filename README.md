@@ -1,6 +1,8 @@
+# Django Polls Site
+
 ## Overview
 
-This repository is for deploying the Django polls app.
+This repository contains a Django polls application, fully containerized with Docker and set up with a CI/CD pipeline for automated builds and deployments.
 
 ## Tech Stack
 
@@ -8,70 +10,80 @@ This repository is for deploying the Django polls app.
 *   **Database**: PostgreSQL
 *   **Web Server**: Nginx, Gunicorn
 *   **Containerization**: Docker, Docker Compose
+*   **CI/CD**: GitHub Actions
 
-## Deployment Steps
+## Getting Started
 
-### 1. Create .env file
+### Local Development
 
-Create a `.env` file in the project's root directory.
+These steps guide you through setting up a local development environment.
+
+**1. Create .env file**
+
+Copy the example environment file. The default values are suitable for local development.
 
 ```bash
-$ touch .env
+cp .env.example .env
 ```
 
-Add the following environment variables to the `.env` file. You can modify the values as needed.
-
-```
-# .env
-
-# PostgreSQL settings
-POSTGRES_DB=polls_db
-POSTGRES_USER=polls_user
-POSTGRES_PASSWORD=polls_password
-
-# Host IP for Nginx
-# If not set, defaults to 127.0.0.1 (localhost)
-# Example: HOST_IP=192.168.1.10
-HOST_IP=127.0.0.1
-```
-
-### 2. Build and Run Containers
+**2. Build and Run Containers**
 
 Build the Docker images and run the containers in the background.
 
 ```bash
-$ docker-compose up --build -d
+docker compose up --build -d
 ```
 
-### 3. Run Database Migrations
+**3. Run Database Migrations**
 
-Execute the database migrations.
+Execute the database migrations to set up the database schema.
 
 ```bash
-$ docker-compose exec web poetry run python manage.py migrate
+docker compose exec web poetry run python manage.py migrate
 ```
 
-### 4. Collect Static Files
-
-Collect static files so they can be served by Nginx.
-
-```bash
-$ docker-compose exec web poetry run python manage.py collectstatic --no-input
-```
-
-### 5. Create a Superuser
+**4. Create a Superuser**
 
 Create a superuser to access the Django admin site.
 
 ```bash
-$ docker-compose exec web poetry run python manage.py createsuperuser
+docker compose exec web poetry run python manage.py createsuperuser
 ```
 
 Follow the prompts to set your username, email, and password.
 
-### 6. Access the Application
+**5. Access the Application**
 
-The application will be accessible at the IP address specified by `HOST_IP`. If `HOST_IP` is not set, it will be available at `http://127.0.0.1` or `http://localhost`.
+The application will be accessible at `http://127.0.0.1` or `http://localhost`.
 
-*   Polls App: `http://<HOST_IP>/polls/`
-*   Admin Site: `http://<HOST_IP>/admin/`
+*   **Polls App**: `http://localhost/polls/`
+*   **Admin Site**: `http://localhost/admin/`
+
+### Testing
+
+To run the test suite, execute the following command. This will start a dedicated test database and run the tests against it.
+
+```bash
+docker compose run --rm test
+```
+
+## Deployment
+
+This project is configured for semi-automated deployments to a production environment using GitHub Actions.
+
+### Workflow
+
+1.  **Build & Push**: Pushing to the `main` branch automatically triggers the `create_docker_image` workflow. This builds a new production-ready Docker image and pushes it to the GitHub Container Registry (ghcr.io).
+
+2.  **Deploy**: To deploy the new version, manually trigger the `Deploy to Production` workflow from the Actions tab in your GitHub repository. This will connect to the production server, pull the latest image from ghcr.io, and restart the services.
+
+### Initial Server Setup
+
+The first time you deploy to a new server, you may need to run these commands manually on the server to initialize the database and static files:
+
+```bash
+# On the production server
+docker compose -f docker-compose.prod.yml exec web poetry run python manage.py migrate
+docker compose -f docker-compose.prod.yml exec web poetry run python manage.py collectstatic --no-input
+docker compose -f docker-compose.prod.yml exec web poetry run python manage.py createsuperuser
+```
