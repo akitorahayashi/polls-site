@@ -9,8 +9,7 @@ dependencies = [
     "django-debug-toolbar (>=6.0.0,<7.0.0)",
     "gunicorn (>=23.0.0,<24.0.0)",
     "psycopg2-binary (>=2.9.10,<3.0.0)",
-    "polls-app @ git+https://github.com/akitorahayashi/polls-app.git",
-    "dj-database-url (>=2.2.0,<3.0.0)",
+    "polls-app @ git+https://github.com/akitorahayashi/polls-app.git"
 ]
 
 [build-system]
@@ -24,8 +23,6 @@ package-mode = false
 ipython = "^9.4.0"
 black = "^25.1.0"
 ruff = "^0.12.9"
-pytest = "^8.3.2"
-pytest-django = "^4.8.0"
 
 [tool.black]
 target-version = ['py312']

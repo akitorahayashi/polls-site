@@ -1,28 +1,40 @@
-FROM python:3.12-slim
+# Stage 1: base
+# システムレベルの依存関係とPython環境の基本設定
+FROM python:3.11-slim-bullseye AS base
 
-# Pythonが.pycバイトコードファイルを生成しないようにする
-ENV PYTHONDONTWRITEBYTECODE=1
-# 標準出力・標準エラー出力をバッファリングせず、ログをリアルタイムで表示
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-# 作業ディレクトリの作成
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install poetry
+
+# Stage 2: builder
+# 開発用ライブラリを含むすべてのPython依存関係をインストール
+FROM base AS builder
+
 WORKDIR /app
 
-# 依存関係のインストール
-RUN pip install pipx && pipx install poetry
-# Poetryの仮想環境をPATHに通す
-ENV PATH="/root/.local/bin:${PATH}"
-
 COPY poetry.lock pyproject.toml ./
-RUN poetry config virtualenvs.create true \
-    && poetry config virtualenvs.in-project true \
-    && poetry install --no-root --only main
 
-# アプリケーションコードのコピー
+RUN poetry config virtualenvs.in-project true \
+    && poetry install --no-root
+
+# Stage 3: production
+# 実行に必要なものだけを含む軽量な本番イメージ
+FROM base AS production
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv ./.venv
+ENV PATH="/app/.venv/bin:$PATH"
+
 COPY . .
 
-# ポートの開放
 EXPOSE 8000
 
-# コンテナを起動
-CMD ["poetry", "run", "gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
