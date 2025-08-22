@@ -11,12 +11,5 @@ jobs:
   format-and-lint:
     uses: ./.github/workflows/format-and-lint.yml
 
-  docker-build:
-    permissions:
-      contents: read
-      packages: write
-    uses: ./.github/workflows/docker-build.yml
-    secrets: inherit
-
   run-tests:
     uses: ./.github/workflows/run-tests.yml

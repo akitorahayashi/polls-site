@@ -3,42 +3,42 @@ version: '3.8'
 services:
   web:
     build:
-      context: .
+      context: ./src
       target: production
     image: polls-site-web
     env_file: .env
     volumes:
-      - .:/app
+      - ./src:/app
       - static_volume:/app/staticfiles
     depends_on:
       - db
 
   test:
     build:
-      context: .
+      context: ./src
       target: builder
     env_file: .env
     volumes:
-      - ./config:/app/config
-      - ./manage.py:/app/manage.py
-      - ./pyproject.toml:/app/pyproject.toml
-      - ./poetry.lock:/app/poetry.lock
-      - ./tests:/app/tests
+      - ./src/config:/app/config
+      - ./src/manage.py:/app/manage.py
+      - ./src/pyproject.toml:/app/pyproject.toml
+      - ./src/poetry.lock:/app/poetry.lock
+      - ./src/tests:/app/tests
     command: sh -c "poetry run pytest"
     depends_on:
       - db
 
   lint:
     build:
-      context: .
+      context: ./src
       target: builder
     env_file: .env
     volumes:
-      - ./config:/app/config
-      - ./manage.py:/app/manage.py
-      - ./pyproject.toml:/app/pyproject.toml
-      - ./poetry.lock:/app/poetry.lock
-      - ./tests:/app/tests
+      - ./src/config:/app/config
+      - ./src/manage.py:/app/manage.py
+      - ./src/pyproject.toml:/app/pyproject.toml
+      - ./src/poetry.lock:/app/poetry.lock
+      - ./src/tests:/app/tests
     command: sh -c "poetry run ruff check . && poetry run ruff format --check ."
 
   db:
