@@ -15,3 +15,8 @@ Dockerfile
 .vscode/
 .idea/
 /.env
+*.md
+
+# CI/CD・テスト
+.github/
+tests/
