@@ -19,7 +19,4 @@ jobs:
     secrets: inherit
 
   run-tests:
-    needs: docker-build
     uses: ./.github/workflows/run-tests.yml
-    with:
-      image-tag: ${{ needs.docker-build.outputs.image-tag }}
