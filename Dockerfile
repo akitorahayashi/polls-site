@@ -1,6 +1,6 @@
 # Stage 1: base
 # システムレベルの依存関係とPython環境の基本設定
-FROM python:3.11-slim-bullseye AS base
+FROM python:3.12-slim-bullseye AS base
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -22,7 +22,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN poetry config virtualenvs.in-project true \
-    && poetry install --no-root
+    && poetry install --no-interaction --no-root --sync
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Stage 3: production
 # 実行に必要なものだけを含む軽量な本番イメージ

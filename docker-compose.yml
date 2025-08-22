@@ -19,8 +19,12 @@ services:
       target: builder
     env_file: .env
     volumes:
-      - .:/app
-    command: poetry run pytest
+      - ./config:/app/config
+      - ./manage.py:/app/manage.py
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./poetry.lock:/app/poetry.lock
+      - ./tests:/app/tests
+    command: sh -c "poetry run pytest"
     depends_on:
       - db
 
@@ -30,8 +34,12 @@ services:
       target: builder
     env_file: .env
     volumes:
-      - .:/app
-    command: poetry run ruff check . && poetry run ruff format --check .
+      - ./config:/app/config
+      - ./manage.py:/app/manage.py
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./poetry.lock:/app/poetry.lock
+      - ./tests:/app/tests
+    command: sh -c "poetry run ruff check . && poetry run ruff format --check ."
 
   db:
     image: postgres:15
