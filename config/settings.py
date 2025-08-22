@@ -30,9 +30,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
 
 # Application definition
 
@@ -44,7 +41,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "polls",
-    "debug_toolbar",
 ]
 
 
@@ -56,7 +52,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 
@@ -88,11 +83,17 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.getenv("POSTGRES_DB"),
         "USER": os.getenv("POSTGRES_USER"),
-        "HOST": os.getenv("POSTGRES_HOST"),
+        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "CONN_MAX_AGE": int(os.getenv("POSTGRES_CONN_MAX_AGE", "60")),
     }
 }
+
+_required = ["POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"]
+_missing = [k for k in _required if not os.getenv(k)]
+if _missing:
+    raise RuntimeError(f"Missing DB env vars: {_missing}")
 
 
 # Password validation

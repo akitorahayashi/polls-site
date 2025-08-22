@@ -1,4 +1,7 @@
-version: '3.8'
+x-db-test-env: &db_test_env
+  POSTGRES_DB: test_polls_db
+  POSTGRES_USER: test_polls_user
+  POSTGRES_PASSWORD: test_polls_password
 
 services:
   web:
@@ -25,12 +28,11 @@ services:
       - ./tests:/app/tests
     command: sh -c "poetry run pytest"
     environment:
-      - POSTGRES_DB=test_polls_db
-      - POSTGRES_USER=test_polls_user
-      - POSTGRES_PASSWORD=test_polls_password
-      - POSTGRES_HOST=db_test
+      <<: *db_test_env
+      POSTGRES_HOST: db_test
     depends_on:
-      - db_test
+      db_test:
+        condition: service_healthy
 
   db:
     image: postgres:15
@@ -43,12 +45,16 @@ services:
 
   db_test:
     image: postgres:15
-    volumes:
-      - postgres_test_data:/var/lib/postgresql/data/
+    tmpfs:
+      - /var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=test_polls_db
-      - POSTGRES_USER=test_polls_user
-      - POSTGRES_PASSWORD=test_polls_password
+      <<: *db_test_env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
 
   nginx:
     build: ./nginx
@@ -63,5 +69,4 @@ services:
 
 volumes:
   postgres_data:
-  postgres_test_data:
   static_volume:
