@@ -17,7 +17,6 @@ services:
     build:
       context: .
       target: builder
-    env_file: .env
     volumes:
       - ./config:/app/config
       - ./manage.py:/app/manage.py
@@ -25,8 +24,13 @@ services:
       - ./poetry.lock:/app/poetry.lock
       - ./tests:/app/tests
     command: sh -c "poetry run pytest"
+    environment:
+      - POSTGRES_DB=test_polls_db
+      - POSTGRES_USER=test_polls_user
+      - POSTGRES_PASSWORD=test_polls_password
+      - POSTGRES_HOST=db_test
     depends_on:
-      - db
+      - db_test
 
   db:
     image: postgres:15
@@ -36,6 +40,15 @@ services:
       - POSTGRES_DB=polls_db
       - POSTGRES_USER=polls_user
       - POSTGRES_PASSWORD=polls_password
+
+  db_test:
+    image: postgres:15
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=test_polls_db
+      - POSTGRES_USER=test_polls_user
+      - POSTGRES_PASSWORD=test_polls_password
 
   nginx:
     build: ./nginx
@@ -50,4 +63,5 @@ services:
 
 volumes:
   postgres_data:
+  postgres_test_data:
   static_volume:
