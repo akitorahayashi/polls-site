@@ -1,4 +1,7 @@
-version: '3.8'
+x-db-test-env: &db_test_env
+  POSTGRES_DB: test_polls_db
+  POSTGRES_USER: test_polls_user
+  POSTGRES_PASSWORD: test_polls_password
 
 services:
   web:
@@ -44,10 +47,8 @@ services:
     image: postgres:15
     tmpfs:
       - /var/lib/postgresql/data
-    environment: &db_test_env
-      POSTGRES_DB: test_polls_db
-      POSTGRES_USER: test_polls_user
-      POSTGRES_PASSWORD: test_polls_password
+    environment:
+      <<: *db_test_env
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h localhost"]
       interval: 5s
