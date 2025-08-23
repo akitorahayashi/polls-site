@@ -5,9 +5,16 @@
 # ==============================================================================
 
 .PHONY: setup
-setup: ## .env.exampleから.envファイルを作成します
-	@echo "Creating .env file..."
-	@cp .env.example .env
+setup: ## .env.exampleから.envファイルを安全に作成します（既存の場合はスキップ）
+	@echo "Checking for .env file..."
+	@if [ ! -f .env.example ]; then \
+	  echo "ERROR: .env.exampleが見つかりません" >&2; exit 1; \
+	fi
+	@if [ -f .env ]; then \
+	  echo ".envは既に存在するため作成をスキップします"; \
+	else \
+	  cp .env.example .env && echo "Created .env from .env.example"; \
+	fi
 
 .PHONY: up
 up: ## Dockerイメージをビルドし、コンテナをバックグラウンドで起動します
