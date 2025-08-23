@@ -12,42 +12,52 @@ This repository contains a Django polls application, fully containerized with Do
 *   **Containerization**: Docker, Docker Compose
 *   **CI/CD**: GitHub Actions
 
+## Makefile
+
+This project uses a `Makefile` to simplify common development and CI/CD tasks. The Makefile provides a set of easy-to-use commands for building, running, testing, and managing the application.
+
+To see a full list of available commands, run:
+
+```bash
+make help
+```
+
 ## Getting Started
 
 ### Local Development
 
-These steps guide you through setting up a local development environment.
+These steps guide you through setting up a local development environment using the Makefile.
 
 **1. Create .env file**
 
-Copy the example environment file. The default values are suitable for local development.
+This command copies the example environment file. The default values are suitable for local development.
 
 ```bash
-cp .env.example .env
+make setup
 ```
 
 **2. Build and Run Containers**
 
-Build the Docker images and run the containers in the background.
+This command builds the Docker images and runs the containers in the background.
 
 ```bash
-docker compose up --build -d
+make up
 ```
 
 **3. Run Database Migrations**
 
-Execute the database migrations to set up the database schema.
+This command executes the database migrations to set up the database schema.
 
 ```bash
-docker compose exec web poetry run python manage.py migrate
+make migrate
 ```
 
 **4. Create a Superuser**
 
-Create a superuser to access the Django admin site.
+This command allows you to create a superuser to access the Django admin site.
 
 ```bash
-docker compose exec web poetry run python manage.py createsuperuser
+make superuser
 ```
 
 Follow the prompts to set your username, email, and password.
@@ -64,8 +74,34 @@ The application will be accessible at `http://127.0.0.1` or `http://localhost`.
 To run the test suite, execute the following command. This will start a dedicated test database and run the tests against it.
 
 ```bash
-docker compose run --rm test
+make test
 ```
+
+### Code Quality
+
+To lint and format your code, you can use the following commands:
+
+*   **Linting**: `make lint`
+*   **Formatting**: `make format`
+*   **Check Formatting**: `make format-check`
+
+## Makefile Commands
+
+Here is a list of all available commands in the Makefile:
+
+| Command        | Description                                       |
+|----------------|---------------------------------------------------|
+| `setup`        | Create .env file from .env.example                |
+| `up`           | Build images and start containers                 |
+| `down`         | Stop containers                                   |
+| `logs`         | Show container logs                               |
+| `shell`        | Access the web container shell                    |
+| `migrate`      | Run database migrations                           |
+| `superuser`    | Create a superuser                                |
+| `test`         | Run tests                                         |
+| `lint`         | Lint code with ruff                               |
+| `format`       | Format code with black                            |
+| `format-check` | Check code formatting with black                  |
 
 ## Deployment
 
