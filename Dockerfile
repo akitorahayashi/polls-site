@@ -1,8 +1,8 @@
 # ==============================================================================
 # Builder Stage
 # ==============================================================================
-# This stage installs all dependencies, including development ones,
-# and builds the Python virtual environment.
+# This stage installs ALL dependencies (including development ones)
+# and is used for testing and linting in the CI/CD pipeline.
 FROM python:3.12-slim AS builder
 
 # Set environment variables for Python
@@ -31,7 +31,32 @@ RUN poetry config virtualenvs.in-project true
 # Copy dependency definition files
 COPY poetry.lock pyproject.toml ./
 
-# Install dependencies, --no-root is used because the project is not installed as a package
+# Install all dependencies, including development ones
+RUN poetry install --no-interaction --no-root --sync
+
+# ==============================================================================
+# Production Venv Stage
+# ==============================================================================
+# This stage builds a clean virtual environment with ONLY production dependencies.
+FROM python:3.12-slim AS production-venv
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV PATH="/root/.local/bin:$PATH"
+
+# Copy poetry installation from the builder stage
+COPY --from=builder /root/.local /root/.local
+
+WORKDIR /app
+
+# Create a virtual environment in the project directory
+RUN poetry config virtualenvs.in-project true
+
+# Copy dependency definition files
+COPY poetry.lock pyproject.toml ./
+
+# Install ONLY production dependencies
 RUN poetry install --no-interaction --no-root --sync --only main
 
 # ==============================================================================
@@ -44,7 +69,7 @@ FROM python:3.12-slim AS production
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Install netcat, which is required for the entrypoint script to wait for the database
+# Install netcat, required for the entrypoint script
 RUN apt-get update && apt-get install -y --no-install-recommends netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -52,8 +77,8 @@ WORKDIR /app
 # Create a non-root user and group for security
 RUN addgroup --system app && adduser --system --ingroup app appuser
 
-# Copy the virtual environment from the builder stage
-COPY --from=builder --chown=appuser:app /app/.venv ./.venv
+# Copy the clean, production-only virtual environment
+COPY --from=production-venv --chown=appuser:app /app/.venv ./.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy the entrypoint script and make it executable

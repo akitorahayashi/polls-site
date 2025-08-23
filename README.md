@@ -103,11 +103,13 @@ This project is configured for semi-automated deployments to a production enviro
 
 ### Initial Server Setup
 
-The first time you deploy to a new server, you may need to run these commands manually on the server to initialize the database and static files. The `production` stage of the Docker image does not include Poetry, so commands must be run directly with `python`.
+The first time you deploy to a new server, you may need to run these commands manually to initialize the database and static files. On a typical production server, only the base `docker-compose.yml` would be present, so no `-f` flag is required.
+
+The `production` stage of the Docker image does not include Poetry, so commands must be run directly with `python`.
 
 ```bash
 # On the production server
-docker compose -f docker-compose.prod.yml exec web python manage.py migrate
-docker compose -f docker-compose.prod.yml exec web python manage.py collectstatic --no-input
-docker compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py collectstatic --no-input
+docker compose exec web python manage.py createsuperuser
 ```
