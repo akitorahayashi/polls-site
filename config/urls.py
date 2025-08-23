@@ -25,8 +25,3 @@ urlpatterns = [
     path("polls/", include("polls.urls")),
     path("", RedirectView.as_view(url="/polls/")),
 ]
-
-if not getattr(settings, "TESTING", False):
-    from debug_toolbar.toolbar import debug_toolbar_urls
-
-    urlpatterns += debug_toolbar_urls()
