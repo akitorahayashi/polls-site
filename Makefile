@@ -1,20 +1,16 @@
 .DEFAULT_GOAL := help
 
+.PHONY: all
+all: help ## 既定のターゲット（ヘルプ表示）
+
 # ==============================================================================
 # Docker Commands
 # ==============================================================================
 
 .PHONY: setup
 setup: ## .env.exampleから.envファイルを安全に作成します（既存の場合はスキップ）
-	@echo "Checking for .env file..."
-	@if [ ! -f .env.example ]; then \
-	  echo "ERROR: .env.exampleが見つかりません" >&2; exit 1; \
-	fi
-	@if [ -f .env ]; then \
-	  echo ".envは既に存在するため作成をスキップします"; \
-	else \
-	  cp .env.example .env && echo "Created .env from .env.example"; \
-	fi
+	@[ -f .env.example ] || { echo "ERROR: .env.exampleが見つかりません" >&2; exit 1; }
+	@[ -f .env ] && echo ".envは既に存在するため作成をスキップします" || { cp .env.example .env && echo "Created .env from .env.example"; }
 
 .PHONY: up
 up: ## Dockerイメージをビルドし、コンテナをバックグラウンドで起動します
@@ -22,9 +18,14 @@ up: ## Dockerイメージをビルドし、コンテナをバックグラウン�
 	@docker compose up --build -d
 
 .PHONY: down
-down: ## 実行中のコンテナを停止します
+down: ## 実行中のコンテナを停止し、孤立コンテナを削除します
 	@echo "Stopping containers..."
-	@docker compose down
+	@docker compose down --remove-orphans
+
+.PHONY: clean
+clean: ## コンテナ、ボリューム、孤立リソースを完全に削除します
+	@echo "Cleaning containers, volumes, and orphans..."
+	@docker compose down -v --remove-orphans
 
 .PHONY: logs
 logs: ## コンテナのログを表示・追跡します
@@ -32,8 +33,8 @@ logs: ## コンテナのログを表示・追跡します
 	@docker compose logs -f
 
 .PHONY: shell
-shell: ## 'web'サービスのコンテナ内でシェルを起動します
-	@echo "Accessing web container shell..."
+shell: ## 'web'サービスのコンテナ内でシェルを起動します（要起動）
+	@docker compose ps --status=running --services | grep -q '^web$$' || { echo "webコンテナが起動していません。'make up' を先に実行してください。" >&2; exit 1; }
 	@docker compose exec web /bin/bash
 
 # ==============================================================================
@@ -41,12 +42,12 @@ shell: ## 'web'サービスのコンテナ内でシェルを起動します
 # ==============================================================================
 
 .PHONY: migrate
-migrate: ## データベースのマイグレーションを実行します
+migrate: ensure-web ## データベースのマイグレーションを実行します（必要ならコンテナを起動）
 	@echo "Running database migrations..."
 	@docker compose exec web poetry run python manage.py migrate
 
 .PHONY: superuser
-superuser: ## Djangoのスーパーユーザーを作成します
+superuser: ensure-web ## Djangoのスーパーユーザーを作成します（対話モード、必要ならコンテナを起動）
 	@echo "Creating superuser..."
 	@docker compose exec web poetry run python manage.py createsuperuser
 
@@ -73,6 +74,14 @@ format: ## blackを使用してコードをフォーマットします
 format-check: ## blackを使用してコードのフォーマットをチェックします
 	@echo "Checking code formatting with black..."
 	@docker compose run --rm test poetry run black --check .
+
+# ==============================================================================
+# Internal Helper Targets
+# ==============================================================================
+
+.PHONY: ensure-web
+ensure-web:
+	@docker compose ps --status=running --services | grep -q '^web$$' || docker compose up -d
 
 # ==============================================================================
 # Help
