@@ -2,20 +2,27 @@
 
 # Exit immediately if a command exits with a non-zero status.
 set -e
+# Exit immediately if a variable is unset.
+set -u
 
 # Wait for the database to be ready
-# The host is 'db' as defined in docker-compose.yml
-# The port is 5432, the default for PostgreSQL
 echo "Waiting for database..."
 
-# Check if the environment variable DB_HOST is set, otherwise default to "db"
+# Get database connection details from environment variables with defaults
 DB_HOST=${DB_HOST:-db}
+DB_PORT=${DB_PORT:-5432}
+WAIT_TIMEOUT=60
+SECONDS_WAITED=0
 
-# Loop until the database is ready
-# Use nc (netcat) to check if the port is open
-while ! nc -z "$DB_HOST" 5432; do
-  echo "Waiting for database connection at $DB_HOST:5432..."
+# Loop until the database is ready or timeout is reached
+while ! nc -z -w 1 "$DB_HOST" "$DB_PORT"; do
+  if [ "$SECONDS_WAITED" -ge "$WAIT_TIMEOUT" ]; then
+    echo "Error: Timed out waiting for database connection at $DB_HOST:$DB_PORT"
+    exit 1
+  fi
+  echo "Waiting for database connection at $DB_HOST:$DB_PORT... ($SECONDS_WAITED/$WAIT_TIMEOUT)"
   sleep 1
+  SECONDS_WAITED=$((SECONDS_WAITED + 1))
 done
 
 echo "Database is ready."
@@ -25,6 +32,5 @@ echo "Applying database migrations..."
 python manage.py migrate
 
 # Execute the command passed to the script (e.g., gunicorn)
-# This allows the script to be a generic entrypoint.
 echo "Starting application..."
 exec "$@"

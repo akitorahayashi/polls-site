@@ -32,7 +32,7 @@ RUN poetry config virtualenvs.in-project true
 COPY poetry.lock pyproject.toml ./
 
 # Install dependencies, --no-root is used because the project is not installed as a package
-RUN poetry install --no-interaction --no-root --sync
+RUN poetry install --no-interaction --no-root --sync --only main
 
 # ==============================================================================
 # Production Stage
@@ -53,7 +53,7 @@ WORKDIR /app
 RUN addgroup --system app && adduser --system --ingroup app appuser
 
 # Copy the virtual environment from the builder stage
-COPY --from=builder /app/.venv ./.venv
+COPY --from=builder --chown=appuser:app /app/.venv ./.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy the entrypoint script and make it executable

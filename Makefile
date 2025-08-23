@@ -35,7 +35,7 @@ logs: ## コンテナのログを表示・追跡します
 .PHONY: shell
 shell: ## 'web'サービスのコンテナ内でシェルを起動します（要起動）
 	@docker compose ps --status=running --services | grep -q '^web$$' || { echo "webコンテナが起動していません。'make up' を先に実行してください。" >&2; exit 1; }
-	@docker compose exec web /bin/bash
+	@docker compose exec web /bin/sh
 
 # ==============================================================================
 # Django Management Commands
@@ -44,12 +44,12 @@ shell: ## 'web'サービスのコンテナ内でシェルを起動します（�
 .PHONY: migrate
 migrate: ensure-web ## 手動でデータベースのマイグレーションを実行します（通常は起動時に自動実行されます）
 	@echo "Running manual database migrations..."
-	@docker compose exec web poetry run python manage.py migrate
+	@docker compose exec web python manage.py migrate
 
 .PHONY: superuser
 superuser: ensure-web ## Djangoのスーパーユーザーを作成します（対話モード、必要ならコンテナを起動）
 	@echo "Creating superuser..."
-	@docker compose exec web poetry run python manage.py createsuperuser
+	@docker compose exec web python manage.py createsuperuser
 
 # ==============================================================================
 # Testing and Code Quality
