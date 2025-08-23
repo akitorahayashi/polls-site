@@ -32,10 +32,20 @@ FROM base AS production
 
 WORKDIR /app
 
+# 非rootユーザーを作成し、パーミッションを設定
+RUN addgroup --system app && adduser --system --ingroup app appuser
+RUN chown -R appuser:app /app
+
+# 仮想環境をコピー
 COPY --from=builder /app/.venv ./.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-COPY . .
+# アプリケーションの実行に必要なファイルのみをコピー
+COPY --chown=appuser:app manage.py ./
+COPY --chown=appuser:app config/ ./config/
+
+# 非rootユーザーに切り替え
+USER appuser
 
 EXPOSE 8000
 

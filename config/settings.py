@@ -75,25 +75,25 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 
+import dj_database_url
+
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB"),
-        "USER": os.getenv("POSTGRES_USER"),
-        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
-        "PORT": os.getenv("POSTGRES_PORT", "5432"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-        "CONN_MAX_AGE": int(os.getenv("POSTGRES_CONN_MAX_AGE", "60")),
-    }
+    # 環境変数 DATABASE_URL が設定されていない場合は、デフォルトのSQLiteデータベースを使用
+    "default": dj_database_url.config(
+        conn_max_age=600,
+        default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
+    )
 }
 
-_required = ["POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"]
-_missing = [k for k in _required if not os.getenv(k)]
-if _missing:
-    raise RuntimeError(f"Missing DB env vars: {_missing}")
+# DATABASE_URLが設定されていない場合（ローカル開発など）のエラーチェックを回避
+if DATABASES["default"]["ENGINE"] != "django.db.backends.sqlite3":
+    _required = ["DATABASE_URL"]
+    _missing = [k for k in _required if not os.getenv(k)]
+    if _missing:
+        raise RuntimeError(f"Missing required env var: {_missing}")
 
 
 # Password validation
