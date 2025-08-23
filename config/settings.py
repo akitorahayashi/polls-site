@@ -81,19 +81,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    # 環境変数 DATABASE_URL が設定されていない場合は、デフォルトのSQLiteデータベースを使用
     "default": dj_database_url.config(
-        conn_max_age=600,
-        default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
+        conn_max_age=int(os.getenv("DATABASE_CONN_MAX_AGE", 600)),
+        ssl_require=not DEBUG,
     )
 }
-
-# DATABASE_URLが設定されていない場合（ローカル開発など）のエラーチェックを回避
-if DATABASES["default"]["ENGINE"] != "django.db.backends.sqlite3":
-    _required = ["DATABASE_URL"]
-    _missing = [k for k in _required if not os.getenv(k)]
-    if _missing:
-        raise RuntimeError(f"Missing required env var: {_missing}")
 
 
 # Password validation
