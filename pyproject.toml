@@ -1,7 +1,7 @@
 [project]
-name = "polls-application"
+name = "polls-site"
 version = "0.1.0"
-description = ""
+description = "A Django site running the polls app."
 readme = "README.md"
 requires-python = ">=3.12,<4.0"
 dependencies = [
