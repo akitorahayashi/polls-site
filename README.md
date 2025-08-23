@@ -38,21 +38,13 @@ make setup
 
 **2. Build and Run Containers**
 
-This command builds the Docker images and runs the containers in the background.
+This command builds the Docker images, runs the containers in the background, and automatically applies any pending database migrations.
 
 ```bash
 make up
 ```
 
-**3. Run Database Migrations**
-
-This command executes the database migrations to set up the database schema.
-
-```bash
-make migrate
-```
-
-**4. Create a Superuser**
+**3. Create a Superuser (Optional)**
 
 This command allows you to create a superuser to access the Django admin site.
 
@@ -62,7 +54,7 @@ make superuser
 
 Follow the prompts to set your username, email, and password.
 
-**5. Access the Application**
+**4. Access the Application**
 
 The application will be accessible at `http://127.0.0.1` or `http://localhost`.
 

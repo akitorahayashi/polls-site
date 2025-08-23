@@ -42,8 +42,8 @@ shell: ## 'web'サービスのコンテナ内でシェルを起動します（�
 # ==============================================================================
 
 .PHONY: migrate
-migrate: ensure-web ## データベースのマイグレーションを実行します（必要ならコンテナを起動）
-	@echo "Running database migrations..."
+migrate: ensure-web ## 手動でデータベースのマイグレーションを実行します（通常は起動時に自動実行されます）
+	@echo "Running manual database migrations..."
 	@docker compose exec web poetry run python manage.py migrate
 
 .PHONY: superuser

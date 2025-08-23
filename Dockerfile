@@ -1,52 +1,77 @@
-# Stage 1: base
-# システムレベルの依存関係とPython環境の基本設定
-FROM python:3.12-slim-bullseye AS base
+# ==============================================================================
+# Builder Stage
+# ==============================================================================
+# This stage installs all dependencies, including development ones,
+# and builds the Python virtual environment.
+FROM python:3.12-slim AS builder
 
+# Set environment variables for Python
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-RUN pip install poetry
-
-# Stage 2: builder
-# 開発用ライブラリを含むすべてのPython依存関係をインストール
-FROM base AS builder
-
-WORKDIR /app
-
-COPY poetry.lock pyproject.toml ./
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        build-essential \
-        libpq-dev \
+# Install system dependencies required for building Python packages
+# and for poetry installation.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN poetry config virtualenvs.in-project true \
-    && poetry install --no-interaction --no-root --sync
+# Install Poetry using the official installer
+RUN curl -sSL https://install.python-poetry.org | python3 -
 
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Stage 3: production
-# 実行に必要なものだけを含む軽量な本番イメージ
-FROM base AS production
+# Add Poetry to the PATH
+ENV PATH="/root/.local/bin:$PATH"
 
 WORKDIR /app
 
-# 非rootユーザーを作成し、パーミッションを設定
-RUN addgroup --system app && adduser --system --ingroup app appuser
-RUN chown -R appuser:app /app
+# Create a virtual environment in the project directory
+RUN poetry config virtualenvs.in-project true
 
-# 仮想環境をコピー
+# Copy dependency definition files
+COPY poetry.lock pyproject.toml ./
+
+# Install dependencies, --no-root is used because the project is not installed as a package
+RUN poetry install --no-interaction --no-root --sync
+
+# ==============================================================================
+# Production Stage
+# ==============================================================================
+# This stage creates the final, lightweight production image.
+FROM python:3.12-slim AS production
+
+# Set environment variables for Python
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Install netcat, which is required for the entrypoint script to wait for the database
+RUN apt-get update && apt-get install -y --no-install-recommends netcat-openbsd && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Create a non-root user and group for security
+RUN addgroup --system app && adduser --system --ingroup app appuser
+
+# Copy the virtual environment from the builder stage
 COPY --from=builder /app/.venv ./.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-# アプリケーションの実行に必要なファイルのみをコピー
+# Copy the entrypoint script and make it executable
+COPY --chown=appuser:app entrypoint.sh .
+RUN chmod +x ./entrypoint.sh
+
+# Copy application code
 COPY --chown=appuser:app manage.py ./
 COPY --chown=appuser:app config/ ./config/
 
-# 非rootユーザーに切り替え
+# Switch to the non-root user
 USER appuser
 
+# Expose the port Gunicorn will run on
 EXPOSE 8000
 
-CMD ["/app/.venv/bin/gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Set the entrypoint script to be executed when the container starts
+ENTRYPOINT ["./entrypoint.sh"]
+
+# Set the default command for the entrypoint
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
