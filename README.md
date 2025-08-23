@@ -69,6 +69,19 @@ The application will be accessible at `http://127.0.0.1` or `http://localhost`.
 *   **Polls App**: `http://localhost/polls/`
 *   **Admin Site**: `http://localhost/admin/`
 
+## Environment Configuration
+
+You can customize the application's network settings by creating a `.env` file in the project root. This file is automatically used by `docker-compose` when you run `make up`.
+
+-   **`WEB_PORT`**: Sets the port on which the web service will be accessible.
+    -   The default is `8000`.
+    -   Choose a port number between 1024 and 65535.
+    -   If the specified port is already in use, the application will fail to start.
+
+-   **`WEB_BIND_HOST`**: Sets the IP address to which the web service will bind.
+    -   The default is `127.0.0.1` (localhost), which means the service is only accessible from your local machine. This is recommended for development for security reasons.
+    -   To allow access from other devices on your network (e.g., for testing on a mobile device), you can set this to `0.0.0.0`.
+
 ### Testing
 
 To run the test suite, execute the following command. This will start a dedicated test database and run the tests against it.
