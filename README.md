@@ -24,76 +24,51 @@ make help
 
 ## Getting Started
 
-### Local Development
+These steps guide you through setting up a local development environment.
 
-These steps guide you through setting up a local development environment using the Makefile.
-
-**1. Create .env file**
-
+### 1. Create .env file
 This command copies the example environment file. The default values are suitable for local development.
-
 ```bash
 make setup
 ```
 
-**2. Build and Run Containers**
-
-This command builds the Docker images and runs the containers in the background.
-
+### 2. Build and Run Containers
+This command builds the Docker images and runs the containers in the background. Thanks to the `entrypoint.sh` script, it also automatically applies any pending database migrations upon startup.
 ```bash
 make up
 ```
 
-**3. Run Database Migrations**
-
-This command executes the database migrations to set up the database schema.
-
-```bash
-make migrate
-```
-
-**4. Create a Superuser**
-
+### 3. Create a Superuser (Optional)
 This command allows you to create a superuser to access the Django admin site.
-
 ```bash
 make superuser
 ```
-
 Follow the prompts to set your username, email, and password.
 
-**5. Access the Application**
-
-The application will be accessible at `http://127.0.0.1` or `http://localhost`.
-
-*   **Polls App**: `http://localhost/polls/`
-*   **Admin Site**: `http://localhost/admin/`
+### 4. Access the Application
+The application will be accessible at the IP address specified by `HOST_IP` in your `.env` file (defaults to `127.0.0.1`).
+*   **Polls App**: `http://<HOST_IP>/polls/`
+*   **Admin Site**: `http://<HOST_IP>/admin/`
 
 ## Environment Configuration
 
-You can customize the application's network settings by creating a `.env` file in the project root. This file is automatically used by `docker-compose` when you run `make up`.
+You can customize the application's network settings by creating or editing the `.env` file in the project root. This file is automatically used by `docker compose` when you run `make up`.
 
--   **`WEB_PORT`**: Sets the port on which the web service will be accessible.
-    -   The default is `8000`.
-    -   Choose a port number between 1024 and 65535.
-    -   If the specified port is already in use, the application will fail to start.
-
--   **`WEB_BIND_HOST`**: Sets the IP address to which the web service will bind.
-    -   The default is `127.0.0.1` (localhost), which means the service is only accessible from your local machine. This is recommended for development for security reasons.
+-   **`HOST_IP`**: Sets the IP address on the host machine where the application will be accessible.
+    -   The default is `127.0.0.1` (localhost), which means the service is only accessible from your local machine. This is recommended for security.
     -   To allow access from other devices on your network (e.g., for testing on a mobile device), you can set this to `0.0.0.0`.
+    -   **Note**: The application is served on port `80`. To change this, you must modify the `ports` section in the `docker-compose.yml` file.
+
+## Testing and Code Quality
 
 ### Testing
-
 To run the test suite, execute the following command. This will start a dedicated test database and run the tests against it.
-
 ```bash
 make test
 ```
 
 ### Code Quality
-
 To lint and format your code, you can use the following commands:
-
 *   **Linting**: `make lint`
 *   **Formatting**: `make format`
 *   **Check Formatting**: `make format-check`
@@ -128,11 +103,13 @@ This project is configured for semi-automated deployments to a production enviro
 
 ### Initial Server Setup
 
-The first time you deploy to a new server, you may need to run these commands manually on the server to initialize the database and static files:
+The first time you deploy to a new server, you may need to run these commands manually to initialize the database and static files. On a typical production server, only the base `docker-compose.yml` would be present, so no `-f` flag is required.
+
+The `production` stage of the Docker image does not include Poetry, so commands must be run directly with `python`.
 
 ```bash
 # On the production server
-docker compose -f docker-compose.prod.yml exec web poetry run python manage.py migrate
-docker compose -f docker-compose.prod.yml exec web poetry run python manage.py collectstatic --no-input
-docker compose -f docker-compose.prod.yml exec web poetry run python manage.py createsuperuser
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py collectstatic --no-input
+docker compose exec web python manage.py createsuperuser
 ```
