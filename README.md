@@ -24,40 +24,49 @@ make help
 
 ## Getting Started
 
-These steps guide you through setting up a local development environment.
+This project uses a streamlined and robust environment configuration based on a **single source of truth** (`.env.example`). The `Makefile` automates the setup, providing a seamless and consistent developer experience.
 
-### 1. Create .env file
-This command copies the example environment file. The default values are suitable for local development.
+### 1. Initial Setup
+This one-time command creates your local environment files from the single `.env.example` template.
 ```bash
 make setup
 ```
+This creates:
+*   **`.env.dev`**: Your personal configuration for local development. This file is **tracked by Git** to ensure a consistent starting point for all developers.
+*   **`.env.prod`**: Configuration for production. This file is **NOT tracked by Git** and must be created and managed securely in your production environment.
+
+After setup, you can customize the values in the generated files. For example, to run production on a different port, edit `.env.prod`:
+```sh
+# in .env.prod
+WEB_PORT=58080
+
+# To apply the change, restart the containers:
+# make down-prod && make up-prod
+```
 
 ### 2. Build and Run Containers
-This command builds the Docker images and runs the containers in the background. Thanks to the `entrypoint.sh` script, it also automatically applies any pending database migrations upon startup.
-```bash
-make up
-```
+*   **Development**: `make up`
+*   **Production-like**: `make up-prod`
 
-### 3. Create a Superuser (Optional)
-This command allows you to create a superuser to access the Django admin site.
-```bash
-make superuser
-```
-Follow the prompts to set your username, email, and password.
-
-### 4. Access the Application
-The application will be accessible at the IP address specified by `HOST_IP` in your `.env` file (defaults to `127.0.0.1`).
-*   **Polls App**: `http://<HOST_IP>/polls/`
-*   **Admin Site**: `http://<HOST_IP>/admin/`
+### 3. Access the Application
+In both environments, **Nginx is the single entry point**. The access URL depends on the `WEB_HOST_BIND_IP` and `WEB_PORT` variables in the active `.env` file. Note that `WEB_PORT` defines the **public-facing port on the host machine**, which may be different from the internal port (`8000`) that the Django application listens on.
+*   **Development (`make up`)** uses values from `.env.dev` (e.g., `http://127.0.0.1:8000/polls/`).
+*   **Production-like (`make up-prod`)** uses values from `.env.prod` (e.g., `http://127.0.0.1:58080/polls/`).
 
 ## Environment Configuration
+This project follows the **DRY (Don't Repeat Yourself)** principle.
 
-You can customize the application's network settings by creating or editing the `.env` file in the project root. This file is automatically used by `docker compose` when you run `make up`.
+*   **Variable Keys**: Defined once in `.env.example`.
+*   **Variable Values**: Set in `.env.dev` (development) and `.env.prod` (production).
+*   **Service Definitions**:
+  * `docker-compose.yml`: Contains the base configuration for all environments. It uses unified variables like `${WEB_PORT}`.
+  * `docker-compose.override.yml`: Contains **development-only** modifications (e.g., mounting source code, exposing the internal dev server port).
+*   **Makefile Automation**: The `Makefile` automatically creates a symbolic link named `.env` pointing to the correct environment file. This symlink is intentionally not tracked by Git.
 
--   **`HOST_IP`**: Sets the IP address on the host machine where the application will be accessible.
-    -   The default is `127.0.0.1` (localhost), which means the service is only accessible from your local machine. This is recommended for security.
-    -   To allow access from other devices on your network (e.g., for testing on a mobile device), you can set this to `0.0.0.0`.
-    -   **Note**: The application is served on port `80`. To change this, you must modify the `ports` section in the `docker-compose.yml` file.
+## Security and Environment Variables
+*   **`.env.dev`**: This file is tracked by Git and should **NEVER** contain real secrets. It is for non-sensitive, local-only values.
+*   **`.env.prod`**: This file is **NOT** tracked by Git and is where all production secrets must be stored.
+*   **Recommendation**: To prevent accidental commits of secrets, consider using pre-commit hooks that scan for sensitive data.
 
 ## Testing and Code Quality
 
@@ -77,19 +86,23 @@ To lint and format your code, you can use the following commands:
 
 Here is a list of all available commands in the Makefile:
 
-| Command        | Description                                       |
-|----------------|---------------------------------------------------|
-| `setup`        | Create .env file from .env.example                |
-| `up`           | Build images and start containers                 |
-| `down`         | Stop containers                                   |
-| `logs`         | Show container logs                               |
-| `shell`        | Access the web container shell                    |
-| `migrate`      | Run database migrations                           |
-| `superuser`    | Create a superuser                                |
-| `test`         | Run tests                                         |
-| `lint`         | Lint code with ruff                               |
-| `format`       | Format code with black                            |
-| `format-check` | Check code formatting with black                  |
+| Command          | Description                                       |
+|------------------|---------------------------------------------------|
+| `setup`          | Create .env.dev and .env.prod from .env.example   |
+| `up`             | Build images and start dev containers             |
+| `down`           | Stop dev containers                               |
+| `up-prod`        | Build images and start prod-like containers       |
+| `down-prod`      | Stop prod-like containers                         |
+| `logs`           | Show and follow dev container logs                |
+| `shell`          | Access the dev web container shell                |
+| `migrate`        | [DEV] Run database migrations                     |
+| `superuser`      | [DEV] Create a superuser                          |
+| `migrate-prod`   | [PROD] Run database migrations                    |
+| `superuser-prod` | [PROD] Create a superuser                         |
+| `test`           | Run tests                                         |
+| `lint`           | Lint code with ruff                               |
+| `format`         | Format code with black                            |
+| `format-check`   | Check code formatting with black                  |
 
 ## Deployment
 
