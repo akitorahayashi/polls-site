@@ -46,18 +46,29 @@ make superuser
 Follow the prompts to set your username, email, and password.
 
 ### 4. Access the Application
-The application will be accessible at the IP address specified by `HOST_IP` in your `.env` file (defaults to `127.0.0.1`).
-*   **Polls App**: `http://<HOST_IP>/polls/`
-*   **Admin Site**: `http://<HOST_IP>/admin/`
+
+The application's access URL depends on the environment you are running.
+
+-   **Development (`make up`)**:
+    The Django development server is exposed directly. The port is controlled by the `DEV_PORT` variable in your `.env` file (defaults to `8000`).
+    -   **Polls App**: `http://<DEV_BIND_HOST>:<DEV_PORT>/polls/`
+    -   **Admin Site**: `http://<DEV_BIND_HOST>:<DEV_PORT>/admin/`
+    -   Default URL: `http://127.0.0.1:8000/polls/`
+
+-   **Production-like (`make up-prod`)**:
+    The Nginx server is exposed. The port is controlled by the `PROD_PORT` variable in your `.env` file (defaults to `58080`).
+    -   **Polls App**: `http://<PROD_HOST_IP>:<PROD_PORT>/polls/`
+    -   **Admin Site**: `http://<PROD_HOST_IP>:<PROD_PORT>/admin/`
+    -   Default URL: `http://127.0.0.1:58080/polls/`
 
 ## Environment Configuration
 
-You can customize the application's network settings by creating or editing the `.env` file in the project root. This file is automatically used by `docker compose` when you run `make up`.
+You can customize the application's network settings by creating or editing the `.env` file in the project root. This file is automatically used by `docker compose`.
 
--   **`HOST_IP`**: Sets the IP address on the host machine where the application will be accessible.
-    -   The default is `127.0.0.1` (localhost), which means the service is only accessible from your local machine. This is recommended for security.
-    -   To allow access from other devices on your network (e.g., for testing on a mobile device), you can set this to `0.0.0.0`.
-    -   **Note**: The application is served on port `80`. To change this, you must modify the `ports` section in the `docker-compose.yml` file.
+-   **`DEV_PORT`**: Sets the port for the development server (`make up`). Defaults to `8000`.
+-   **`DEV_BIND_HOST`**: Binds the development server to a specific host. Defaults to `127.0.0.1` (localhost). Change to `0.0.0.0` to allow access from other devices on your network.
+-   **`PROD_PORT`**: Sets the public-facing port for the Nginx server in the production-like environment (`make up-prod`). Defaults to `58080`. Using a high port number avoids conflicts with common services and removes the need for root privileges.
+-   **`PROD_HOST_IP`**: Sets the IP for the Nginx server. Defaults to `127.0.0.1`.
 
 ## Testing and Code Quality
 

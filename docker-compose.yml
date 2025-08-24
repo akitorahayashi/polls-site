@@ -31,7 +31,7 @@ services:
     volumes:
       - static_volume:/app/staticfiles
     ports:
-      - "${HOST_IP:-127.0.0.1}:80:80"
+      - "${PROD_HOST_IP:-127.0.0.1}:${PROD_PORT:-58080}:80"
     depends_on:
       - web
 
