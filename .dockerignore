@@ -19,4 +19,3 @@ Dockerfile
 
 # CI/CD・テスト
 .github/
-tests/
