@@ -24,22 +24,30 @@ make help
 
 ## Getting Started
 
-These steps guide you through setting up a local development environment.
+These steps guide you through setting up a local development environment. The `Makefile` is designed to automatically manage environment configurations, providing a seamless development experience.
 
-### 1. Create .env file
-This command copies the example environment file. The default values are suitable for local development.
+### 1. Initial Setup
+This command creates your local environment files, `.env.dev` and `.env.prod`, from their respective templates (`.env.dev.example`, `.env.prod.example`). You only need to run this once.
 ```bash
 make setup
 ```
+-   `.env.dev`: Used for local development (`make up`). The default values are pre-configured for this purpose.
+-   `.env.prod`: Used for production-like testing (`make up-prod`). **Before deploying to a real production environment, you must review and edit the values in this file.**
 
 ### 2. Build and Run Containers
-This command builds the Docker images and runs the containers in the background. Thanks to the `entrypoint.sh` script, it also automatically applies any pending database migrations upon startup.
+This command builds the Docker images and runs the containers for the **development environment**. It automatically selects the `.env.dev` configuration.
 ```bash
 make up
 ```
 
+To start a **production-like environment**, use:
+```bash
+make up-prod
+```
+This command automatically uses the `.env.prod` configuration.
+
 ### 3. Create a Superuser (Optional)
-This command allows you to create a superuser to access the Django admin site.
+This command allows you to create a superuser to access the Django admin site. It runs in the development environment.
 ```bash
 make superuser
 ```
@@ -47,28 +55,23 @@ Follow the prompts to set your username, email, and password.
 
 ### 4. Access the Application
 
-The application's access URL depends on the environment you are running.
+The application's access URL depends on the environment you are running. The `Makefile` automatically switches the underlying `.env` file for you.
 
 -   **Development (`make up`)**:
-    The Django development server is exposed directly. The port is controlled by the `DEV_PORT` variable in your `.env` file (defaults to `8000`).
-    -   **Polls App**: `http://<DEV_BIND_HOST>:<DEV_PORT>/polls/`
-    -   **Admin Site**: `http://<DEV_BIND_HOST>:<DEV_PORT>/admin/`
+    The Django development server is exposed. The port is controlled by the `DEV_PORT` variable in your `.env.dev` file (defaults to `8000`).
     -   Default URL: `http://127.0.0.1:8000/polls/`
 
 -   **Production-like (`make up-prod`)**:
-    The Nginx server is exposed. The port is controlled by the `PROD_PORT` variable in your `.env` file (defaults to `58080`).
-    -   **Polls App**: `http://<PROD_HOST_IP>:<PROD_PORT>/polls/`
-    -   **Admin Site**: `http://<PROD_HOST_IP>:<PROD_PORT>/admin/`
+    The Nginx server is exposed. The port is controlled by the `PROD_PORT` variable in your `.env.prod` file (defaults to `58080`).
     -   Default URL: `http://127.0.0.1:58080/polls/`
 
 ## Environment Configuration
 
-You can customize the application's network settings by creating or editing the `.env` file in the project root. This file is automatically used by `docker compose`.
+Environment settings are managed through two files:
+-   **`.env.dev`**: For the development environment. Customize `DEV_PORT` or `DEV_BIND_HOST` here.
+-   **`.env.prod`**: For the production environment. Customize `PROD_PORT` and other production-specific settings here.
 
--   **`DEV_PORT`**: Sets the port for the development server (`make up`). Defaults to `8000`.
--   **`DEV_BIND_HOST`**: Binds the development server to a specific host. Defaults to `127.0.0.1` (localhost). Change to `0.0.0.0` to allow access from other devices on your network.
--   **`PROD_PORT`**: Sets the public-facing port for the Nginx server in the production-like environment (`make up-prod`). Defaults to `58080`. Using a high port number avoids conflicts with common services and removes the need for root privileges.
--   **`PROD_HOST_IP`**: Sets the IP for the Nginx server. Defaults to `127.0.0.1`.
+The `Makefile` targets (`up`, `down`, `test`, etc.) automatically create a symbolic link named `.env` that points to the correct file (`.env.dev` or `.env.prod`) based on the command you run. This ensures that Docker Compose always loads the appropriate configuration without needing manual intervention, simplifying the development workflow.
 
 ## Testing and Code Quality
 

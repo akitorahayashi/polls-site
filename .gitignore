@@ -7,6 +7,7 @@ env/
 # 環境変数ファイル
 .env
 .env.*
+.env.prod
 !/.env.example
 
 # Pythonキャッシュ

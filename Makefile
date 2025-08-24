@@ -9,41 +9,50 @@ all: help ## Default target
 # Docker Commands
 # ==============================================================================
 
+# [内部] 環境に応じて.envのシンボリックリンクを切り替える
+.PHONY: switch-env-dev
+switch-env-dev:
+	@ln -sf .env.dev .env
+
+.PHONY: switch-env-prod
+switch-env-prod:
+	@ln -sf .env.prod .env
+
 .PHONY: setup
-setup: ## If .env does not exist, create .env from .env.example
-	@[ -f .env.example ] || { echo "ERROR: .env.example not found" >&2; exit 1; }
-	@[ -f .env ] && echo ".env already exists. Skipping creation." || { cp .env.example .env && echo "Created .env from .env.example"; }
+setup: ## Create .env.dev and .env.prod from example files if they don't exist
+	@([ -f .env.dev.example ] && [ ! -f .env.dev ]) && cp .env.dev.example .env.dev && echo "Created .env.dev" || echo ".env.dev already exists or template not found. Skipping."
+	@([ -f .env.prod.example ] && [ ! -f .env.prod ]) && cp .env.prod.example .env.prod && echo "Created .env.prod" || echo ".env.prod already exists or template not found. Skipping."
 
 .PHONY: up
-up: ## Build Docker images and start containers in the background
+up: switch-env-dev ## Build Docker images and start containers in the background
 	@echo "Building images and starting containers..."
 	@docker compose up --build -d
 
 .PHONY: down
-down: ## Stop running containers and remove orphan containers
+down: switch-env-dev ## Stop running containers and remove orphan containers
 	@echo "Stopping containers..."
 	@docker compose down --remove-orphans
 
-up-prod: ## Start all containers using only docker-compose.yml (ignoring override)
+up-prod: switch-env-prod ## Start all containers using only docker-compose.yml (ignoring override)
 	@echo "Starting up production-like services (ignoring override)..."
 	@docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod up -d
 
-down-prod: ## Stop and remove all containers started by up-prod
+down-prod: switch-env-prod ## Stop and remove all containers started by up-prod
 	@echo "Shutting down production-like services..."
 	@docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod down --remove-orphans
 
 .PHONY: clean
-clean: ## Completely remove containers, volumes, and orphan resources
+clean: switch-env-dev ## Completely remove containers, volumes, and orphan resources
 	@echo "Cleaning containers, volumes, and orphans..."
 	@docker compose down -v --remove-orphans
 
 .PHONY: logs
-logs: ## Show and follow container logs
+logs: switch-env-dev ## Show and follow container logs
 	@echo "Showing logs..."
 	@docker compose logs -f
 
 .PHONY: shell
-shell: ## Start a shell inside the 'web' service container (must be running)
+shell: switch-env-dev ## Start a shell inside the 'web' service container (must be running)
 	@docker compose ps --status=running --services | grep -q '^web$$' || { echo "web container is not running. Please run 'make up' first." >&2; exit 1; }
 	@docker compose exec web /bin/sh
 
@@ -69,22 +78,22 @@ superuser: ensure-web ## Create a Django superuser (interactive, starts containe
 # ==============================================================================
 
 .PHONY: test
-test: ## Run test suite using pytest
+test: switch-env-dev ## Run test suite using pytest
 	@echo "Running tests..."
 	@docker compose run --rm test
 
 .PHONY: lint
-lint: ## Run code linting using ruff
+lint: switch-env-dev ## Run code linting using ruff
 	@echo "Running ruff linter..."
 	@docker compose run --rm test poetry run ruff check .
 
 .PHONY: format
-format: ## Format code using black
+format: switch-env-dev ## Format code using black
 	@echo "Formatting code with black..."
 	@docker compose run --rm test poetry run black .
 
 .PHONY: format-check
-format-check: ## Check code formatting using black
+format-check: switch-env-dev ## Check code formatting using black
 	@echo "Checking code formatting with black..."
 	@docker compose run --rm test poetry run black --check .
 
@@ -93,7 +102,7 @@ format-check: ## Check code formatting using black
 # ==============================================================================
 
 .PHONY: ensure-web
-ensure-web:
+ensure-web: switch-env-dev
 	@docker compose ps --status=running --services | grep -q '^web$$' || docker compose up -d
 
 # ==============================================================================
