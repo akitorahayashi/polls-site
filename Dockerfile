@@ -4,7 +4,7 @@
 # ==============================================================================
 FROM python:3.12-slim-bullseye AS builder
 
-ARG POETRY_VERSION=1.8.2
+ARG POETRY_VERSION=2.1.4
 
 ENV POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
@@ -47,7 +47,7 @@ COPY pyproject.toml poetry.lock ./
 
 RUN --mount=type=cache,target=/tmp/poetry_cache \
     poetry config virtualenvs.in-project true && \
-    poetry install --no-root
+    poetry install --no-root --only main
 
 # ==============================================================================
 # Stage 3: Production
