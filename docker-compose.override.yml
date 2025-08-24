@@ -12,8 +12,8 @@ services:
     volumes:
       - .:/app
       - venv_volume:/app/.venv
-    ports:
-      - "${DEV_BIND_HOST:-127.0.0.1}:${DEV_PORT:-8000}:8000"
+    expose:
+      - "8000"
     command: poetry run python manage.py runserver 0.0.0.0:8000
 
   test:
@@ -31,10 +31,6 @@ services:
     depends_on:
       db_test:
         condition: service_healthy
-
-  db:
-    ports:
-      - "5432:5432"
 
   db_test:
     image: postgres:15

@@ -19,9 +19,9 @@ switch-env-prod:
 	@ln -sf .env.prod .env
 
 .PHONY: setup
-setup: ## Create .env.dev and .env.prod from example files if they don't exist
-	@([ -f .env.dev.example ] && [ ! -f .env.dev ]) && cp .env.dev.example .env.dev && echo "Created .env.dev" || echo ".env.dev already exists or template not found. Skipping."
-	@([ -f .env.prod.example ] && [ ! -f .env.prod ]) && cp .env.prod.example .env.prod && echo "Created .env.prod" || echo ".env.prod already exists or template not found. Skipping."
+setup: ## Create .env.dev and .env.prod from the template if they don't exist
+	@([ -f .env.example ] && [ ! -f .env.dev ]) && cp .env.example .env.dev && echo "Created .env.dev from .env.example" || echo ".env.dev already exists or template not found. Skipping."
+	@([ -f .env.example ] && [ ! -f .env.prod ]) && cp .env.example .env.prod && echo "Created .env.prod from .env.example" || echo ".env.prod already exists or template not found. Skipping."
 
 .PHONY: up
 up: switch-env-dev ## Build Docker images and start containers in the background

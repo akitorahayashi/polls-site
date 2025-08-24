@@ -24,54 +24,52 @@ make help
 
 ## Getting Started
 
-These steps guide you through setting up a local development environment. The `Makefile` is designed to automatically manage environment configurations, providing a seamless development experience.
+This project uses a streamlined and robust environment configuration based on a **single source of truth** (`.env.example`). The `Makefile` automates the setup, providing a seamless and consistent developer experience.
 
 ### 1. Initial Setup
-This command creates your local environment files, `.env.dev` and `.env.prod`, from their respective templates (`.env.dev.example`, `.env.prod.example`). You only need to run this once.
+This one-time command creates your local environment files, `.env.dev` and `.env.prod`, from the single `.env.example` template.
 ```bash
 make setup
 ```
--   `.env.dev`: Used for local development (`make up`). The default values are pre-configured for this purpose.
--   `.env.prod`: Used for production-like testing (`make up-prod`). **Before deploying to a real production environment, you must review and edit the values in this file.**
+-   **`.env.dev`**: Your personal configuration for local development. You can customize variables here. This file is **tracked by Git** to ensure a consistent starting point for all developers.
+-   **`.env.prod`**: Configuration for production. This file is **NOT tracked by Git** and must be created and managed securely in your production environment.
+
+After setup, you can customize the values in `.env.dev` and `.env.prod`. For example, to run production on a different port:
+```sh
+# in .env.prod
+WEB_PORT=58080
+```
 
 ### 2. Build and Run Containers
-This command builds the Docker images and runs the containers for the **development environment**. It automatically selects the `.env.dev` configuration.
+To start the **development environment**, run:
 ```bash
 make up
 ```
+This command automatically uses the `.env.dev` configuration and brings up the services with development-specific settings, like hot-reloading.
 
 To start a **production-like environment**, use:
 ```bash
 make up-prod
 ```
-This command automatically uses the `.env.prod` configuration.
+This command uses the `.env.prod` configuration and runs the services as they would in production (e.g., without debug mode or code mounting).
 
-### 3. Create a Superuser (Optional)
-This command allows you to create a superuser to access the Django admin site. It runs in the development environment.
-```bash
-make superuser
-```
-Follow the prompts to set your username, email, and password.
+### 3. Access the Application
+In both development and production-like environments, **Nginx is the single entry point**. The application's access URL is determined by the variables in the corresponding `.env` file that `make` automatically selects for you.
 
-### 4. Access the Application
-
-The application's access URL depends on the environment you are running. The `Makefile` automatically switches the underlying `.env` file for you.
-
--   **Development (`make up`)**:
-    The Django development server is exposed. The port is controlled by the `DEV_PORT` variable in your `.env.dev` file (defaults to `8000`).
-    -   Default URL: `http://127.0.0.1:8000/polls/`
-
--   **Production-like (`make up-prod`)**:
-    The Nginx server is exposed. The port is controlled by the `PROD_PORT` variable in your `.env.prod` file (defaults to `58080`).
-    -   Default URL: `http://127.0.0.1:58080/polls/`
+-   **Development (`make up`)**: Access via `http://${WEB_HOST_BIND_IP}:${WEB_PORT}/polls/`.
+    -   Uses values from `.env.dev` (e.g., `http://127.0.0.1:8000/polls/`).
+-   **Production-like (`make up-prod`)**: Access via `http://${WEB_HOST_BIND_IP}:${WEB_PORT}/polls/`.
+    -   Uses values from `.env.prod` (e.g., `http://127.0.0.1:58080/polls/`).
 
 ## Environment Configuration
+This project follows the **DRY (Don't Repeat Yourself)** principle.
 
-Environment settings are managed through two files:
--   **`.env.dev`**: For the development environment. Customize `DEV_PORT` or `DEV_BIND_HOST` here.
--   **`.env.prod`**: For the production environment. Customize `PROD_PORT` and other production-specific settings here.
-
-The `Makefile` targets (`up`, `down`, `test`, etc.) automatically create a symbolic link named `.env` that points to the correct file (`.env.dev` or `.env.prod`) based on the command you run. This ensures that Docker Compose always loads the appropriate configuration without needing manual intervention, simplifying the development workflow.
+-   **Variable Keys**: Defined once in `.env.example`. This is the single source of truth for *what* can be configured.
+-   **Variable Values**: Set in `.env.dev` (for development) and `.env.prod` (for production). This separates the configuration *values* from the service definitions.
+-   **Service Definitions**:
+    -   `docker-compose.yml`: Contains the base configuration for all environments. It uses unified variables like `${WEB_PORT}`.
+    -   `docker-compose.override.yml`: Contains **development-only** modifications (e.g., mounting source code, changing the run command).
+-   **Makefile Automation**: The `Makefile` automatically creates a symlink named `.env` pointing to either `.env.dev` or `.env.prod` depending on the target (`up` vs `up-prod`). This makes the process seamless and removes the need for manual environment setup.
 
 ## Testing and Code Quality
 
