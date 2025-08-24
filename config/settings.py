@@ -28,7 +28,6 @@ sys.path.append(str(BASE_DIR / "apps"))
 SECRET_KEY = "django-insecure-1y6#__=qkj=b3*a))u#w^9uxc6)2x3rj)20)h2@hzxlw@zjx03"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
 ALLOWED_HOSTS = []
 
@@ -83,7 +82,6 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": dj_database_url.config(
         conn_max_age=int(os.getenv("DATABASE_CONN_MAX_AGE", 600)),
-        ssl_require=not DEBUG,
     )
 }
 
