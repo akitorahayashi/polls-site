@@ -49,24 +49,24 @@ WEB_PORT=58080
 *   **Production-like**: `make up-prod`
 
 ### 3. Access the Application
-In both environments, **Nginx is the single entry point**. The access URL depends on the `WEB_HOST_BIND_IP` and `WEB_PORT` variables in the active `.env` file.
+In both environments, **Nginx is the single entry point**. The access URL depends on the `WEB_HOST_BIND_IP` and `WEB_PORT` variables in the active `.env` file. Note that `WEB_PORT` defines the **public-facing port on the host machine**, which may be different from the internal port (`8000`) that the Django application listens on.
 *   **Development (`make up`)** uses values from `.env.dev` (e.g., `http://127.0.0.1:8000/polls/`).
 *   **Production-like (`make up-prod`)** uses values from `.env.prod` (e.g., `http://127.0.0.1:58080/polls/`).
 
 ## Environment Configuration
 This project follows the **DRY (Don't Repeat Yourself)** principle.
 
-*   **Variable Keys**: Defined once in `.env.example`. This is the single source of truth for *what* can be configured.
-*   **Variable Values**: Set in `.env.dev` and `.env.prod`. This separates the configuration *values* from the service definitions.
+*   **Variable Keys**: Defined once in `.env.example`.
+*   **Variable Values**: Set in `.env.dev` (development) and `.env.prod` (production).
 *   **Service Definitions**:
-    *   `docker-compose.yml`: Contains the base configuration for all environments. It uses unified variables like `${WEB_PORT}`.
-    *   `docker-compose.override.yml`: Contains **development-only** modifications (e.g., mounting source code, changing the run command).
-*   **Makefile Automation**: The `Makefile` automatically creates a symbolic link named `.env` pointing to either `.env.dev` or `.env.prod` depending on the target (`up` vs `up-prod`). This makes the process seamless and removes the need for manual environment setup. Note that this `.env` symlink is intentionally not tracked by Git.
+  * `docker-compose.yml`: Contains the base configuration for all environments. It uses unified variables like `${WEB_PORT}`.
+  * `docker-compose.override.yml`: Contains **development-only** modifications (e.g., mounting source code, exposing the internal dev server port).
+*   **Makefile Automation**: The `Makefile` automatically creates a symbolic link named `.env` pointing to the correct environment file. This symlink is intentionally not tracked by Git.
 
 ## Security and Environment Variables
-*   **`.env.dev`**: This file is tracked by Git and should **NEVER** contain real secrets or production credentials. It is intended for non-sensitive, local-only, or dummy values that ease onboarding for new developers.
-*   **`.env.prod`**: This file is **NOT** tracked by Git and is where all production secrets and credentials must be stored. It must be managed securely in the production environment.
-*   **Recommendation**: To prevent accidental commits of secrets, consider using a tool like `git-secret` or pre-commit hooks that scan for sensitive data before committing.
+*   **`.env.dev`**: This file is tracked by Git and should **NEVER** contain real secrets. It is for non-sensitive, local-only values.
+*   **`.env.prod`**: This file is **NOT** tracked by Git and is where all production secrets must be stored.
+*   **Recommendation**: To prevent accidental commits of secrets, consider using pre-commit hooks that scan for sensitive data.
 
 ## Testing and Code Quality
 
@@ -86,19 +86,23 @@ To lint and format your code, you can use the following commands:
 
 Here is a list of all available commands in the Makefile:
 
-| Command        | Description                                       |
-|----------------|---------------------------------------------------|
-| `setup`        | Create .env file from .env.example                |
-| `up`           | Build images and start containers                 |
-| `down`         | Stop containers                                   |
-| `logs`         | Show container logs                               |
-| `shell`        | Access the web container shell                    |
-| `migrate`      | Run database migrations                           |
-| `superuser`    | Create a superuser                                |
-| `test`         | Run tests                                         |
-| `lint`         | Lint code with ruff                               |
-| `format`       | Format code with black                            |
-| `format-check` | Check code formatting with black                  |
+| Command          | Description                                       |
+|------------------|---------------------------------------------------|
+| `setup`          | Create .env.dev and .env.prod from .env.example   |
+| `up`             | Build images and start dev containers             |
+| `down`           | Stop dev containers                               |
+| `up-prod`        | Build images and start prod-like containers       |
+| `down-prod`      | Stop prod-like containers                         |
+| `logs`           | Show and follow dev container logs                |
+| `shell`          | Access the dev web container shell                |
+| `migrate`        | [DEV] Run database migrations                     |
+| `superuser`      | [DEV] Create a superuser                          |
+| `migrate-prod`   | [PROD] Run database migrations                    |
+| `superuser-prod` | [PROD] Create a superuser                         |
+| `test`           | Run tests                                         |
+| `lint`           | Lint code with ruff                               |
+| `format`         | Format code with black                            |
+| `format-check`   | Check code formatting with black                  |
 
 ## Deployment
 

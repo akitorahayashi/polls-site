@@ -20,10 +20,12 @@ PROD_COMPOSE := docker compose -f docker-compose.yml --project-name $(PROJECT_NA
 # [Internal] Switch .env symlink based on the environment
 .PHONY: switch-env-dev
 switch-env-dev:
+	@[ -f .env.dev ] || { [ -f .env.example ] && cp .env.example .env.dev && echo "Created .env.dev from .env.example"; } || true
 	@ln -sf .env.dev .env && echo "Switched to DEV (.env -> .env.dev)"
 
 .PHONY: switch-env-prod
 switch-env-prod:
+	@[ -f .env.prod ] || { [ -f .env.example ] && cp .env.example .env.prod && echo "Created .env.prod from .env.example"; } || true
 	@ln -sf .env.prod .env && echo "Switched to PROD (.env -> .env.prod)"
 
 .PHONY: setup
