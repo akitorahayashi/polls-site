@@ -19,3 +19,13 @@ Dockerfile
 
 # CI/CD・テスト
 .github/
+
+# Test artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+junit*.xml
+.DS_Store

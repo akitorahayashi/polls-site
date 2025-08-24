@@ -4,7 +4,6 @@ services:
       context: .
       target: production
     image: polls-site-web
-    container_name: polls-site-web
     env_file: .env
     volumes:
       - static_volume:/app/staticfiles
@@ -14,7 +13,6 @@ services:
 
   db:
     image: postgres:15
-    container_name: polls-site-db
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
@@ -30,7 +28,6 @@ services:
 
   nginx:
     build: ./nginx
-    container_name: polls-site-nginx
     volumes:
       - static_volume:/app/staticfiles
     ports:
