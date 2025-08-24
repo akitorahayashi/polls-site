@@ -27,49 +27,46 @@ make help
 This project uses a streamlined and robust environment configuration based on a **single source of truth** (`.env.example`). The `Makefile` automates the setup, providing a seamless and consistent developer experience.
 
 ### 1. Initial Setup
-This one-time command creates your local environment files, `.env.dev` and `.env.prod`, from the single `.env.example` template.
+This one-time command creates your local environment files from the single `.env.example` template.
 ```bash
 make setup
 ```
--   **`.env.dev`**: Your personal configuration for local development. You can customize variables here. This file is **tracked by Git** to ensure a consistent starting point for all developers.
--   **`.env.prod`**: Configuration for production. This file is **NOT tracked by Git** and must be created and managed securely in your production environment.
+This creates:
+*   **`.env.dev`**: Your personal configuration for local development. This file is **tracked by Git** to ensure a consistent starting point for all developers.
+*   **`.env.prod`**: Configuration for production. This file is **NOT tracked by Git** and must be created and managed securely in your production environment.
 
-After setup, you can customize the values in `.env.dev` and `.env.prod`. For example, to run production on a different port:
+After setup, you can customize the values in the generated files. For example, to run production on a different port, edit `.env.prod`:
 ```sh
 # in .env.prod
 WEB_PORT=58080
+
+# To apply the change, restart the containers:
+# make down-prod && make up-prod
 ```
 
 ### 2. Build and Run Containers
-To start the **development environment**, run:
-```bash
-make up
-```
-This command automatically uses the `.env.dev` configuration and brings up the services with development-specific settings, like hot-reloading.
-
-To start a **production-like environment**, use:
-```bash
-make up-prod
-```
-This command uses the `.env.prod` configuration and runs the services as they would in production (e.g., without debug mode or code mounting).
+*   **Development**: `make up`
+*   **Production-like**: `make up-prod`
 
 ### 3. Access the Application
-In both development and production-like environments, **Nginx is the single entry point**. The application's access URL is determined by the variables in the corresponding `.env` file that `make` automatically selects for you.
-
--   **Development (`make up`)**: Access via `http://${WEB_HOST_BIND_IP}:${WEB_PORT}/polls/`.
-    -   Uses values from `.env.dev` (e.g., `http://127.0.0.1:8000/polls/`).
--   **Production-like (`make up-prod`)**: Access via `http://${WEB_HOST_BIND_IP}:${WEB_PORT}/polls/`.
-    -   Uses values from `.env.prod` (e.g., `http://127.0.0.1:58080/polls/`).
+In both environments, **Nginx is the single entry point**. The access URL depends on the `WEB_HOST_BIND_IP` and `WEB_PORT` variables in the active `.env` file.
+*   **Development (`make up`)** uses values from `.env.dev` (e.g., `http://127.0.0.1:8000/polls/`).
+*   **Production-like (`make up-prod`)** uses values from `.env.prod` (e.g., `http://127.0.0.1:58080/polls/`).
 
 ## Environment Configuration
 This project follows the **DRY (Don't Repeat Yourself)** principle.
 
--   **Variable Keys**: Defined once in `.env.example`. This is the single source of truth for *what* can be configured.
--   **Variable Values**: Set in `.env.dev` (for development) and `.env.prod` (for production). This separates the configuration *values* from the service definitions.
--   **Service Definitions**:
-    -   `docker-compose.yml`: Contains the base configuration for all environments. It uses unified variables like `${WEB_PORT}`.
-    -   `docker-compose.override.yml`: Contains **development-only** modifications (e.g., mounting source code, changing the run command).
--   **Makefile Automation**: The `Makefile` automatically creates a symlink named `.env` pointing to either `.env.dev` or `.env.prod` depending on the target (`up` vs `up-prod`). This makes the process seamless and removes the need for manual environment setup.
+*   **Variable Keys**: Defined once in `.env.example`. This is the single source of truth for *what* can be configured.
+*   **Variable Values**: Set in `.env.dev` and `.env.prod`. This separates the configuration *values* from the service definitions.
+*   **Service Definitions**:
+    *   `docker-compose.yml`: Contains the base configuration for all environments. It uses unified variables like `${WEB_PORT}`.
+    *   `docker-compose.override.yml`: Contains **development-only** modifications (e.g., mounting source code, changing the run command).
+*   **Makefile Automation**: The `Makefile` automatically creates a symbolic link named `.env` pointing to either `.env.dev` or `.env.prod` depending on the target (`up` vs `up-prod`). This makes the process seamless and removes the need for manual environment setup. Note that this `.env` symlink is intentionally not tracked by Git.
+
+## Security and Environment Variables
+*   **`.env.dev`**: This file is tracked by Git and should **NEVER** contain real secrets or production credentials. It is intended for non-sensitive, local-only, or dummy values that ease onboarding for new developers.
+*   **`.env.prod`**: This file is **NOT** tracked by Git and is where all production secrets and credentials must be stored. It must be managed securely in the production environment.
+*   **Recommendation**: To prevent accidental commits of secrets, consider using a tool like `git-secret` or pre-commit hooks that scan for sensitive data before committing.
 
 ## Testing and Code Quality
 
