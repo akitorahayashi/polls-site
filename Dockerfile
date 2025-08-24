@@ -1,102 +1,82 @@
+# syntax=docker/dockerfile:1.7-labs
 # ==============================================================================
-# Builder Stage
+# Stage 1: Builder
 # ==============================================================================
-# This stage installs ALL dependencies (including development ones)
-# and is used for testing and linting in the CI/CD pipeline.
-FROM python:3.12-slim AS builder
+FROM python:3.12-slim-bullseye AS builder
 
-# Set environment variables for Python
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ARG POETRY_VERSION=2.1.4
 
-# Install system dependencies required for building Python packages
-# and for poetry installation.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    build-essential \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Poetry using the official installer
-RUN curl -sSL https://install.python-poetry.org | python3 -
-
-# Add Poetry to the PATH
-ENV PATH="/root/.local/bin:$PATH"
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_CACHE_DIR=/tmp/poetry_cache \
+    PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
-# Create a virtual environment in the project directory
-RUN poetry config virtualenvs.in-project true
+RUN --mount=type=cache,target=/root/.cache \
+    pip install pipx && \
+    pipx ensurepath && \
+    pipx install "poetry==${POETRY_VERSION}"
 
-# Copy dependency definition files
-COPY poetry.lock pyproject.toml ./
+COPY pyproject.toml poetry.lock ./
 
-# Install all dependencies, including development ones
-RUN poetry install --no-interaction --no-root --sync
+RUN --mount=type=cache,target=/tmp/poetry_cache \
+    poetry config virtualenvs.in-project true && \
+    poetry install --no-root
 
 # ==============================================================================
-# Production Venv Stage
+# Stage 2: Prod-Builder
 # ==============================================================================
-# This stage builds a clean virtual environment with ONLY production dependencies.
-FROM python:3.12-slim AS production-venv
+FROM python:3.12-slim-bullseye AS prod-builder
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV PATH="/root/.local/bin:$PATH"
+ARG POETRY_VERSION=2.1.4
 
-# Copy poetry installation from the builder stage
-COPY --from=builder /root/.local /root/.local
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_CACHE_DIR=/tmp/poetry_cache \
+    PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
-# Create a virtual environment in the project directory
-RUN poetry config virtualenvs.in-project true
+RUN --mount=type=cache,target=/root/.cache \
+    pip install pipx && \
+    pipx ensurepath && \
+    pipx install "poetry==${POETRY_VERSION}"
 
-# Copy dependency definition files
-COPY poetry.lock pyproject.toml ./
+COPY pyproject.toml poetry.lock ./
 
-# Install ONLY production dependencies
-RUN poetry install --no-interaction --no-root --sync --only main
+RUN --mount=type=cache,target=/tmp/poetry_cache \
+    poetry config virtualenvs.in-project true && \
+    poetry install --no-root --only main
 
 # ==============================================================================
-# Production Stage
+# Stage 3: Production
 # ==============================================================================
-# This stage creates the final, lightweight production image.
-FROM python:3.12-slim AS production
+FROM python:3.12-slim-bullseye AS production
 
-# Set environment variables for Python
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-
-# Install netcat, required for the entrypoint script
-RUN apt-get update && apt-get install -y --no-install-recommends netcat-openbsd && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-# Create a non-root user and group for security
 RUN addgroup --system app && adduser --system --ingroup app appuser
 
-# Copy the clean, production-only virtual environment
-COPY --from=production-venv --chown=appuser:app /app/.venv ./.venv
-ENV PATH="/app/.venv/bin:$PATH"
+WORKDIR /app
+RUN chown appuser:app /app
 
-# Copy the entrypoint script and make it executable
-COPY --chown=appuser:app entrypoint.sh .
-RUN chmod +x ./entrypoint.sh
+# 仮想環境をコピー
+COPY --from=prod-builder /app/.venv ./.venv
+ENV PATH="/app/.venv/bin:${PATH}"
 
-# Copy application code
+# 必要なファイルのみコピー
 COPY --chown=appuser:app manage.py ./
 COPY --chown=appuser:app config/ ./config/
+COPY --chown=appuser:app entrypoint.sh ./
 
-# Switch to the non-root user
+RUN chmod +x entrypoint.sh
+
 USER appuser
 
-# Expose the port Gunicorn will run on
 EXPOSE 8000
 
-# Set the entrypoint script to be executed when the container starts
-ENTRYPOINT ["./entrypoint.sh"]
+ENV HEALTHCHECK_PATH=/health
 
-# Set the default command for the entrypoint
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import sys, os, urllib.request; sys.exit(0) if urllib.request.urlopen(f'http://localhost:8000{os.environ.get('HEALTHCHECK_PATH')}').getcode() == 200 else sys.exit(1)"
+
+ENTRYPOINT ["/app/entrypoint.sh"]
