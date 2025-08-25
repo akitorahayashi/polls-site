@@ -15,8 +15,8 @@ POSTGRES_IMAGE ?= postgres:15.7
 # ==============================================================================
 
 # Docker Compose command wrappers
-DEV_COMPOSE := docker compose --project-name $(PROJECT_NAME)-dev
-PROD_COMPOSE := docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+DEV_COMPOSE := sudo docker compose --project-name $(PROJECT_NAME)-dev
+PROD_COMPOSE := sudo docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
 
 # ==============================================================================
 # Environment Setup
@@ -33,7 +33,7 @@ setup: ## Create .env files and pull test images
 		cp .env.example .env.prod; \
 	fi
 	@echo "Pulling postgres image for tests..."
-	@docker pull $(POSTGRES_IMAGE)
+	@sudo docker pull $(POSTGRES_IMAGE)
 
 # ==============================================================================
 # Development Environment Commands
