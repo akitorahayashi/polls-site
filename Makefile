@@ -139,7 +139,7 @@ lint-check: ## Check the code for issues with Ruff
 .PHONY: test
 test: ## Run the test suite
 	@echo "Running test suite..."
-	@sudo /home/jules/.local/bin/poetry run pytest
+	poetry run pytest
 
 # ==============================================================================
 # Help
