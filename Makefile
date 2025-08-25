@@ -92,19 +92,19 @@ down-prod: ## Stop prod-like containers
 .PHONY: makemigrations
 makemigrations: ## [DEV] Create migration files
 	@ln -sf .env.dev .env
-	@$(DEV_COMPOSE) exec web python manage.py makemigrations
+	@$(DEV_COMPOSE) exec web poetry run python manage.py makemigrations
 
 .PHONY: migrate
 migrate: ## [DEV] Run database migrations
 	@ln -sf .env.dev .env
 	@echo "Running DEV database migrations..."
-	@$(DEV_COMPOSE) exec web python manage.py migrate
+	@$(DEV_COMPOSE) exec web poetry run python manage.py migrate
 
 .PHONY: superuser
 superuser: ## [DEV] Create a Django superuser
 	@ln -sf .env.dev .env
 	@echo "Creating DEV superuser..."
-	@$(DEV_COMPOSE) exec web python manage.py createsuperuser
+	@$(DEV_COMPOSE) exec web poetry run python manage.py createsuperuser
 
 .PHONY: migrate-prod
 migrate-prod: ## [PROD] Run database migrations
