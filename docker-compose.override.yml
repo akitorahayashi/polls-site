@@ -1,8 +1,3 @@
-x-db-test-env: &db_test_env
-  POSTGRES_DB: test_polls_db
-  POSTGRES_USER: test_polls_user
-  POSTGRES_PASSWORD: test_polls_password
-
 services:
   web:
     build:
@@ -11,39 +6,6 @@ services:
     image: polls-site-web-dev
     volumes:
       - .:/app
-      - venv_volume:/app/.venv
     expose:
       - "8000"
     command: poetry run python manage.py runserver 0.0.0.0:8000
-
-  test:
-    build:
-      context: .
-      target: builder
-    image: polls-site-test
-    volumes:
-      - .:/app
-      - venv_volume:/app/.venv
-    command: sh -c "poetry run pytest"
-    environment:
-      <<: *db_test_env
-      POSTGRES_HOST: db_test
-    depends_on:
-      db_test:
-        condition: service_healthy
-
-  db_test:
-    image: postgres:15
-    tmpfs:
-      - /var/lib/postgresql/data
-    environment:
-      <<: *db_test_env
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h localhost" ]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 5s
-
-volumes:
-  venv_volume: {}

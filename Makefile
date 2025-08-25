@@ -29,9 +29,11 @@ switch-env-prod:
 	@ln -sf .env.prod .env && echo "Switched to PROD (.env -> .env.prod)"
 
 .PHONY: setup
-setup: ## Create .env.dev and .env.prod from the template if they don't exist
+setup: ## Create .env files and pull test images
 	@([ -f .env.example ] && [ ! -f .env.dev ]) && cp .env.example .env.dev && echo "Created .env.dev from .env.example" || echo ".env.dev already exists or template not found. Skipping."
 	@([ -f .env.example ] && [ ! -f .env.prod ]) && cp .env.example .env.prod && echo "Created .env.prod from .env.example" || echo ".env.prod already exists or template not found. Skipping."
+	@echo "Pulling postgres image for tests..."
+	@docker pull postgres:15
 
 # ==============================================================================
 # Development Environment Commands
@@ -80,16 +82,16 @@ down-prod: switch-env-prod ## Stop prod-like containers
 # Django Management Commands
 # ==============================================================================
 .PHONY: makemigrations
-makemigrations: ensure-web ## [DEV] Create migration files
+makemigrations: ## [DEV] Create migration files
 	@$(DEV_COMPOSE) exec web python manage.py makemigrations
 
 .PHONY: migrate
-migrate: ensure-web ## [DEV] Run database migrations
+migrate: ## [DEV] Run database migrations
 	@echo "Running DEV database migrations..."
 	@$(DEV_COMPOSE) exec web python manage.py migrate
 
 .PHONY: superuser
-superuser: ensure-web ## [DEV] Create a Django superuser
+superuser: ## [DEV] Create a Django superuser
 	@echo "Creating DEV superuser..."
 	@$(DEV_COMPOSE) exec web python manage.py createsuperuser
 
@@ -108,32 +110,28 @@ superuser-prod: ensure-web-prod ## [PROD] Create a Django superuser
 # ==============================================================================
 
 .PHONY: test
-test: switch-env-dev ## Run test suite
+test: ## Run test suite
 	@echo "Running tests..."
-	@$(DEV_COMPOSE) run --rm test
+	@poetry run pytest
 
 .PHONY: lint
-lint: switch-env-dev ## Run code linting
+lint: ## Run code linting
 	@echo "Running ruff linter..."
-	@$(DEV_COMPOSE) run --rm test poetry run ruff check .
+	@poetry run ruff check .
 
 .PHONY: format
-format: switch-env-dev ## Format code
+format: ## Format code
 	@echo "Formatting code with black..."
-	@$(DEV_COMPOSE) run --rm test poetry run black .
+	@poetry run black .
 
 .PHONY: format-check
-format-check: switch-env-dev ## Check code formatting
+format-check: ## Check code formatting
 	@echo "Checking code formatting with black..."
-	@$(DEV_COMPOSE) run --rm test poetry run black --check .
+	@poetry run black --check .
 
 # ==============================================================================
 # Internal Helper Targets
 # ==============================================================================
-
-.PHONY: ensure-web
-ensure-web: switch-env-dev
-	@$(DEV_COMPOSE) ps --status=running --services | grep -q '^web$$' || make up
 
 .PHONY: ensure-web-prod
 ensure-web-prod: switch-env-prod
