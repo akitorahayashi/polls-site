@@ -10,8 +10,8 @@ all: help ## Default target
 # ==============================================================================
 
 # Docker Compose command wrappers
-DEV_COMPOSE := docker compose --project-name $(PROJECT_NAME)-dev
-PROD_COMPOSE := docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+DEV_COMPOSE := sudo docker compose --project-name $(PROJECT_NAME)-dev
+PROD_COMPOSE := sudo docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
 
 # ==============================================================================
 # Environment Setup
@@ -33,7 +33,7 @@ setup: ## Create .env files and pull test images
 	@([ -f .env.example ] && [ ! -f .env.dev ]) && cp .env.example .env.dev && echo "Created .env.dev from .env.example" || echo ".env.dev already exists or template not found. Skipping."
 	@([ -f .env.example ] && [ ! -f .env.prod ]) && cp .env.example .env.prod && echo "Created .env.prod from .env.example" || echo ".env.prod already exists or template not found. Skipping."
 	@echo "Pulling postgres image for tests..."
-	@docker pull postgres:15
+	@sudo docker pull postgres:15
 
 # ==============================================================================
 # Development Environment Commands
@@ -112,7 +112,7 @@ superuser-prod: ensure-web-prod ## [PROD] Create a Django superuser
 .PHONY: test
 test: ## Run test suite
 	@echo "Running tests..."
-	@poetry run pytest
+	@sudo /home/jules/.local/bin/poetry run pytest
 
 .PHONY: lint
 lint: ## Run code linting

@@ -23,5 +23,8 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-root
 
+      - name: Set up test environment
+        run: make setup
+
       - name: Run tests
         run: make test
