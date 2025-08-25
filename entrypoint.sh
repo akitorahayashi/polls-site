@@ -8,22 +8,29 @@ set -u
 # Wait for the database to be ready
 echo "Waiting for database..."
 
-# Get database connection details from environment variables with defaults
-DB_HOST=${DB_HOST:-db}
-DB_PORT=${DB_PORT:-5432}
-WAIT_TIMEOUT=60
-SECONDS_WAITED=0
+# Use a Python script to wait for the database, removing dependency on netcat
+python -c '
+import socket
+import time
+import os
+import sys
 
-# Loop until the database is ready or timeout is reached
-while ! nc -z -w 1 "$DB_HOST" "$DB_PORT"; do
-  if [ "$SECONDS_WAITED" -ge "$WAIT_TIMEOUT" ]; then
-    echo "Error: Timed out waiting for database connection at $DB_HOST:$DB_PORT"
-    exit 1
-  fi
-  echo "Waiting for database connection at $DB_HOST:$DB_PORT... ($SECONDS_WAITED/$WAIT_TIMEOUT)"
-  sleep 1
-  SECONDS_WAITED=$((SECONDS_WAITED + 1))
-done
+host = os.environ.get("DB_HOST", "db")
+port = int(os.environ.get("DB_PORT", 5432))
+timeout = int(os.environ.get("WAIT_TIMEOUT", 60))
+
+start_time = time.monotonic()
+while True:
+    try:
+        with socket.create_connection((host, port), timeout=1):
+            break
+    except (socket.timeout, ConnectionRefusedError, OSError):
+        if time.monotonic() - start_time >= timeout:
+            print(f"Error: Timed out waiting for database connection at {host}:{port}", file=sys.stderr)
+            sys.exit(1)
+        print(f"Waiting for database connection at {host}:{port}...")
+        time.sleep(1)
+'
 
 echo "Database is ready."
 
