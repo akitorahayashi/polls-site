@@ -28,8 +28,11 @@ sys.path.append(str(BASE_DIR / "apps"))
 SECRET_KEY = "django-insecure-1y6#__=qkj=b3*a))u#w^9uxc6)2x3rj)20)h2@hzxlw@zjx03"
 
 # SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS_ENV = os.environ.get("ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(",") if host.strip()]
+
 
 
 # Application definition

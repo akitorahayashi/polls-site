@@ -6,6 +6,7 @@ services:
     image: polls-site-web-dev
     volumes:
       - .:/app
+      - /app/.venv
     expose:
       - "8000"
     command: poetry run python manage.py runserver 0.0.0.0:8000

@@ -46,6 +46,12 @@ down: ## Stop dev containers
 	@echo "Stopping DEV containers..."
 	@$(DEV_COMPOSE) down --remove-orphans
 
+rebuild: ## Rebuild the web service without cache and restart it
+	@echo "Rebuilding web service with --no-cache..."
+	@ln -sf .env.dev .env
+	@$(DEV_COMPOSE) build --no-cache web
+	@$(DEV_COMPOSE) up -d web
+
 .PHONY: clean
 clean: ## Completely remove dev containers, volumes, and orphans
 	@ln -sf .env.dev .env
