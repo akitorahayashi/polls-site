@@ -1,8 +1,8 @@
 import os
 
 import pytest
-from django.conf import settings
 from testcontainers.postgres import PostgresContainer
+
 
 # Run this code before all tests
 @pytest.fixture(scope="session", autouse=True)
@@ -31,7 +31,8 @@ def setup_test_environment(request):
     else:
         # A small sleep to prevent a busy-wait loop from consuming too much CPU
         import time
-        while not hasattr(pytest, 'postgres_container'):
+
+        while not hasattr(pytest, "postgres_container"):
             time.sleep(0.1)
 
     # Yield to run the tests
