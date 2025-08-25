@@ -47,12 +47,16 @@ COPY pyproject.toml poetry.lock ./
 
 RUN --mount=type=cache,target=/tmp/poetry_cache \
     poetry config virtualenvs.in-project true && \
-    poetry install --no-root
+    poetry install --no-root --only main
 
 # ==============================================================================
 # Stage 3: Production
 # ==============================================================================
 FROM python:3.12-slim-bullseye AS production
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends netcat-openbsd && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --system app && adduser --system --ingroup app appuser
 

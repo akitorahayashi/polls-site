@@ -10,8 +10,8 @@ all: help ## Default target
 # ==============================================================================
 
 # Docker Compose command wrappers
-DEV_COMPOSE := sudo docker compose --project-name $(PROJECT_NAME)-dev
-PROD_COMPOSE := sudo docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+DEV_COMPOSE := docker compose --project-name $(PROJECT_NAME)-dev
+PROD_COMPOSE := docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
 
 # ==============================================================================
 # Environment Setup
@@ -28,7 +28,7 @@ setup: ## Create .env files and pull test images
 		cp .env.example .env.prod; \
 	fi
 	@echo "Pulling postgres image for tests..."
-	@sudo docker pull postgres:15
+	@docker pull postgres:15
 
 # ==============================================================================
 # Development Environment Commands
@@ -46,11 +46,11 @@ down: ## Stop dev containers
 	@echo "Stopping DEV containers..."
 	@$(DEV_COMPOSE) down --remove-orphans
 
-rebuild: ## Rebuild the web service without cache and restart it
-	@echo "Rebuilding web service with --no-cache..."
+rebuild: ## Rebuild all services without cache and restart them
+	@echo "Rebuilding all services with --no-cache..."
 	@ln -sf .env.dev .env
-	@$(DEV_COMPOSE) build --no-cache web
-	@$(DEV_COMPOSE) up -d web
+	@$(DEV_COMPOSE) build --no-cache
+	@$(DEV_COMPOSE) up -d
 
 .PHONY: clean
 clean: ## Completely remove dev containers, volumes, and orphans
