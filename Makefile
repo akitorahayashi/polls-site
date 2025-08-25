@@ -2,8 +2,13 @@
 
 PROJECT_NAME := $(shell basename $(CURDIR))
 
-.PHONY: all
+.PHONY: all rebuild
 all: help ## Default target
+
+# ==============================================================================
+# Variables
+# ==============================================================================
+POSTGRES_IMAGE ?= postgres:15
 
 # ==============================================================================
 # Docker Commands
@@ -28,7 +33,7 @@ setup: ## Create .env files and pull test images
 		cp .env.example .env.prod; \
 	fi
 	@echo "Pulling postgres image for tests..."
-	@sudo docker pull postgres:15
+	@sudo docker pull $(POSTGRES_IMAGE)
 
 # ==============================================================================
 # Development Environment Commands
@@ -46,11 +51,10 @@ down: ## Stop dev containers
 	@echo "Stopping DEV containers..."
 	@$(DEV_COMPOSE) down --remove-orphans
 
-rebuild: ## Rebuild the web service without cache and restart it
-	@echo "Rebuilding web service with --no-cache..."
+rebuild: ## Rebuild services, pulling base images, without cache, and restart them
+	@echo "Rebuilding all services with --no-cache and --pull..."
 	@ln -sf .env.dev .env
-	@$(DEV_COMPOSE) build --no-cache web
-	@$(DEV_COMPOSE) up -d web
+	@$(DEV_COMPOSE) up -d --build --no-cache --pull always
 
 .PHONY: clean
 clean: ## Completely remove dev containers, volumes, and orphans
@@ -78,7 +82,7 @@ shell: ## Start a shell inside the dev 'web' container
 up-prod: ## Build images and start prod-like containers
 	@ln -sf .env.prod .env
 	@echo "Starting up PROD-like services..."
-	@$(PROD_COMPOSE) up -d
+	@$(PROD_COMPOSE) up -d --build
 
 .PHONY: down-prod
 down-prod: ## Stop prod-like containers

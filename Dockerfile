@@ -2,7 +2,7 @@
 # ==============================================================================
 # Stage 1: Builder
 # ==============================================================================
-FROM python:3.12-slim-bullseye AS builder
+FROM python:3.12-slim-bookworm AS builder
 
 ARG POETRY_VERSION=2.1.4
 
@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/tmp/poetry_cache \
 # ==============================================================================
 # Stage 2: Prod-Builder
 # ==============================================================================
-FROM python:3.12-slim-bullseye AS prod-builder
+FROM python:3.12-slim-bookworm AS prod-builder
 
 ARG POETRY_VERSION=2.1.4
 
@@ -47,28 +47,29 @@ COPY pyproject.toml poetry.lock ./
 
 RUN --mount=type=cache,target=/tmp/poetry_cache \
     poetry config virtualenvs.in-project true && \
-    poetry install --no-root
+    poetry install --no-root --only main
 
 # ==============================================================================
 # Stage 3: Production
 # ==============================================================================
-FROM python:3.12-slim-bullseye AS production
+FROM python:3.12-slim-bookworm AS production
 
 RUN addgroup --system app && adduser --system --ingroup app appuser
 
 WORKDIR /app
 RUN chown appuser:app /app
 
-# 仮想環境をコピー
-COPY --from=prod-builder /app/.venv ./.venv
+# Copy virtual environment with correct permissions
+COPY --chown=appuser:app --from=prod-builder /app/.venv ./.venv
 ENV PATH="/app/.venv/bin:${PATH}"
 
-# 必要なファイルのみコピー
+# Copy application files
 COPY --chown=appuser:app manage.py ./
 COPY --chown=appuser:app config/ ./config/
 COPY --chown=appuser:app entrypoint.sh ./
+COPY --chown=appuser:app healthcheck.py ./
 
-RUN chmod +x entrypoint.sh
+RUN chmod +x entrypoint.sh healthcheck.py
 
 USER appuser
 
@@ -77,6 +78,6 @@ EXPOSE 8000
 ENV HEALTHCHECK_PATH=/health
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import sys, os, urllib.request; sys.exit(0) if urllib.request.urlopen(f'http://localhost:8000{os.environ.get('HEALTHCHECK_PATH')}').getcode() == 200 else sys.exit(1)"
+    CMD ["python", "healthcheck.py"]
 
 ENTRYPOINT ["/app/entrypoint.sh"]
