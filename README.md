@@ -49,7 +49,7 @@ WEB_PORT=58080
 *   **Production-like**: `make up-prod`
 
 ### 3. Access the Application
-In both environments, **Nginx is the single entry point**. The access URL depends on the `WEB_HOST_BIND_IP` and `WEB_PORT` variables in the active `.env` file. Note that `WEB_PORT` defines the **public-facing port on the host machine**, which may be different from the internal port (`8000`) that the Django application listens on.
+In both environments, **Nginx is the single entry point**. The access URL depends on the `HOST_BIND_IP` and `WEB_PORT` variables in the active `.env` file. Note that `WEB_PORT` defines the **public-facing port on the host machine**, which may be different from the internal port (`8000`) that the Django application listens on.
 *   **Development (`make up`)** uses values from `.env.dev` (e.g., `http://127.0.0.1:8000/polls/`).
 *   **Production-like (`make up-prod`)** uses values from `.env.prod` (e.g., `http://127.0.0.1:58080/polls/`).
 
