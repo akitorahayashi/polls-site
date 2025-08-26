@@ -9,7 +9,7 @@ from dotenv import dotenv_values
 
 
 @pytest.fixture(scope="session")
-def db_service():
+def db_service(monkeypatch):
     """
     Session-scoped fixture to manage a standalone DB service using docker-compose.
     It symlinks .env.test to .env, which is created by `make setup`.
@@ -64,7 +64,7 @@ def db_service():
         else:
             pytest.fail(f"DB service failed to start within {max_wait} seconds.")
 
-        os.environ["DATABASE_URL"] = database_url
+        monkeypatch.setenv("DATABASE_URL", database_url)
         yield
 
     finally:

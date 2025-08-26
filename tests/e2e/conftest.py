@@ -4,6 +4,7 @@ import time
 
 import httpx
 import pytest
+from django.core.management import call_command
 from dotenv import dotenv_values
 
 
@@ -36,6 +37,17 @@ def e2e_services():
         up_result = subprocess.run(
             [*compose_command, "up", "--build", "-d"], capture_output=True, text=True
         )
+
+        # Explicitly run migrations after services are up
+        print("--- Running migrations for E2E tests ---")
+        migrate_result = subprocess.run(
+            [*compose_command, "exec", "-T", "web", "python", "manage.py", "migrate"],
+            capture_output=True,
+            text=True,
+        )
+        if migrate_result.returncode != 0:
+            print(f"--- Migration failed ---\n{migrate_result.stderr}")
+            pytest.fail("E2E migrations failed.", pytrace=False)
 
         # Wait for the web service to be healthy
         print(f"--- Waiting for API at {base_url} to be ready ---")
