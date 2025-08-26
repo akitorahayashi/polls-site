@@ -13,12 +13,9 @@ services:
 
   db:
     image: postgres:15
+    env_file: .env
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_DB=polls_db
-      - POSTGRES_USER=polls_user
-      - POSTGRES_PASSWORD=polls_password
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h localhost" ]
       interval: 5s

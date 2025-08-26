@@ -23,7 +23,7 @@ PROD_COMPOSE := sudo docker compose -f docker-compose.yml --project-name $(PROJE
 # ==============================================================================
 
 .PHONY: setup
-setup: ## Create .env files and pull test images
+setup: ## Create .env files for all environments (dev, prod, test)
 	@if [ ! -f .env.dev ] && [ -f .env.example ]; then \
 		echo "Creating .env.dev from .env.example..."; \
 		cp .env.example .env.dev; \
@@ -32,8 +32,12 @@ setup: ## Create .env files and pull test images
 		echo "Creating .env.prod from .env.example..."; \
 		cp .env.example .env.prod; \
 	fi
-	@echo "Pulling postgres image for tests..."
-	@sudo docker pull $(POSTGRES_IMAGE)
+	@if [ ! -f .env.test ] && [ -f .env.example ]; then \
+		echo "Creating .env.test from .env.example..."; \
+		cp .env.example .env.test; \
+		echo "Configuring .env.test for the test database..."; \
+		sed -i'' -e 's/POSTGRES_DB=polls_db/POSTGRES_DB=polls_db_test/g' .env.test; \
+	fi
 
 # ==============================================================================
 # Development Environment Commands
@@ -148,8 +152,17 @@ lint-check: ## Check the code for issues with Ruff
 
 .PHONY: test
 test: ## Run the test suite
-	@echo "Running test suite..."
-	poetry run pytest
+	@echo "--- Setting up test environment ---"
+	@ln -sf .env.test .env
+	@$(DEV_COMPOSE) down -v --remove-orphans > /dev/null 2>&1
+	@$(DEV_COMPOSE) up -d web db
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@$(DEV_COMPOSE) exec web poetry run python manage.py migrate
+	@echo "--- Running test suite ---"
+	@poetry run pytest
+	@echo "--- Tearing down test environment ---"
+	@$(DEV_COMPOSE) down -v --remove-orphans > /dev/null 2>&1
 
 # ==============================================================================
 # Help

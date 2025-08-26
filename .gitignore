@@ -7,7 +7,7 @@ env/
 # 環境変数ファイル
 .env
 .env.*
-!*.env.example
+!.env.example
 
 # Pythonキャッシュ
 __pycache__/
