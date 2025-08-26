@@ -34,7 +34,9 @@ def db_service():
         print("\n--- Starting DB service for tests ---")
         subprocess.run(
             [*compose_command, "up", "-d", "db"],
-            check=True, capture_output=True, text=True
+            check=True,
+            capture_output=True,
+            text=True,
         )
 
         # Wait for the database to be ready
@@ -47,7 +49,9 @@ def db_service():
         db_name = config.get("POSTGRES_DB", "testdb")
         db_user = config.get("POSTGRES_USER", "user")
         db_password = config.get("POSTGRES_PASSWORD", "password")
-        database_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        database_url = (
+            f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        )
 
         while time.time() - start_time < max_wait:
             try:
@@ -67,12 +71,12 @@ def db_service():
         # Stop the db service
         print("\n--- Tearing down DB service ---")
         subprocess.run(
-            [*compose_command, "down", "-v"],
-            check=True, capture_output=True, text=True
+            [*compose_command, "down", "-v"], check=True, capture_output=True, text=True
         )
         # Clean up the symlink
         if os.path.islink(".env"):
             os.remove(".env")
+
 
 @pytest.fixture(scope="session")
 def django_db_setup(django_db_setup, django_db_blocker, db_service):

@@ -4,6 +4,7 @@ from polls.models import Question
 # Mark all tests in this file as 'db'
 pytestmark = pytest.mark.django_db
 
+
 def test_db_connection(db_service):
     """
     A simple test to verify that the database container is up and
@@ -16,6 +17,7 @@ def test_db_connection(db_service):
     # If this test runs without throwing an exception, it means the connection
     # and migration setup from conftest.py worked.
     assert True
+
 
 def test_can_query_model():
     """

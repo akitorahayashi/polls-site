@@ -34,8 +34,7 @@ def e2e_services():
         # Start services
         print("\n--- Starting E2E services ---")
         up_result = subprocess.run(
-            [*compose_command, "up", "--build", "-d"],
-            capture_output=True, text=True
+            [*compose_command, "up", "--build", "-d"], capture_output=True, text=True
         )
 
         # Wait for the web service to be healthy
@@ -59,10 +58,11 @@ def e2e_services():
             print(f"--- 'docker compose up' stderr ---\n{up_result.stderr}")
 
             logs_result = subprocess.run(
-                [*compose_command, "logs", "web"],
-                capture_output=True, text=True
+                [*compose_command, "logs", "web"], capture_output=True, text=True
             )
-            print(f"--- 'docker compose logs web' ---\n{logs_result.stdout}\n{logs_result.stderr}")
+            print(
+                f"--- 'docker compose logs web' ---\n{logs_result.stdout}\n{logs_result.stderr}"
+            )
             pytest.fail(f"E2E services failed to start within {max_wait} seconds.")
 
         yield base_url
@@ -72,7 +72,9 @@ def e2e_services():
         print("\n--- Tearing down E2E services ---")
         subprocess.run(
             [*compose_command, "down", "-v", "--remove-orphans"],
-            check=True, capture_output=True, text=True
+            check=True,
+            capture_output=True,
+            text=True,
         )
         # Clean up the symlink
         if os.path.islink(".env"):
