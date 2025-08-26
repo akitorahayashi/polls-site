@@ -1,9 +1,12 @@
 import os
 import subprocess
 import time
-import pytest
+
 import psycopg2
+import pytest
 from django.core.management import call_command
+from dotenv import dotenv_values
+
 
 @pytest.fixture(scope="session")
 def db_service():
@@ -14,15 +17,18 @@ def db_service():
     project_name = os.path.basename(os.getcwd()) + "-dev"
     compose_command = ["docker", "compose", "--project-name", project_name]
 
-    # `make setup` creates .env.test, but docker-compose expects .env
-    if not os.path.exists(".env.test"):
-        pytest.fail("'.env.test' not found. Please run `make setup` first.")
+    # `make setup` creates .env.test, which we read directly.
+    env_file = ".env.test"
+    if not os.path.exists(env_file):
+        pytest.fail(f"'{env_file}' not found. Please run `make setup` first.")
+
+    config = dotenv_values(env_file)
 
     try:
-        # Symlink .env.test to .env for docker-compose
+        # Symlink .env.test to .env for docker-compose, which expects .env
         if os.path.exists(".env"):
             os.remove(".env")
-        os.symlink(".env.test", ".env")
+        os.symlink(env_file, ".env")
 
         # Start only the db service
         print("\n--- Starting DB service for tests ---")
@@ -35,12 +41,12 @@ def db_service():
         print("--- Waiting for DB service to be ready ---")
         max_wait = 60
         start_time = time.time()
-        # Read connection details from the env file for psycopg2
-        db_host = os.environ.get("DB_HOST", "localhost")
-        db_port = os.environ.get("DB_PORT", "5432")
-        db_name = os.environ.get("POSTGRES_DB", "testdb")
-        db_user = os.environ.get("POSTGRES_USER", "user")
-        db_password = os.environ.get("POSTGRES_PASSWORD", "password")
+        # Read connection details from the loaded config
+        db_host = config.get("DB_HOST", "localhost")
+        db_port = config.get("DB_PORT", "5432")
+        db_name = config.get("POSTGRES_DB", "testdb")
+        db_user = config.get("POSTGRES_USER", "user")
+        db_password = config.get("POSTGRES_PASSWORD", "password")
         database_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
         while time.time() - start_time < max_wait:

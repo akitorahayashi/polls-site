@@ -149,9 +149,11 @@ lint-check: ## Check the code for issues with Ruff
 
 .PHONY: test unit-test db-test e2e-test
 
-test: ## Run unit and database tests
-	@echo "--- Running unit and database tests ---"
-	@poetry run pytest tests/unit tests/db
+test: ## Run all tests sequentially: unit -> db -> e2e
+	@echo "--- Running all tests ---"
+	@$(MAKE) unit-test
+	@$(MAKE) db-test
+	@$(MAKE) e2e-test
 
 unit-test: ## Run unit tests
 	@echo "--- Running unit tests ---"
