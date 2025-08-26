@@ -25,22 +25,8 @@ jobs:
           pipx install poetry
           poetry config virtualenvs.in-project true
 
-      - name: Install dependencies
-        run: |
-          poetry install --no-root --sync
-
-      - name: Create .env.test file for E2E tests
-        if: ${{ matrix.test_target == 'e2e-test' }}
-        run: |
-          # The .env.test file is required by the e2e conftest.
-          # We create it from the example if it exists.
-          if [ -f .env.example ]; then
-            cp .env.example .env.test
-          else
-            # Create a dummy one if no example exists, to prevent file-not-found errors.
-            echo "DATABASE_URL=postgresql://test:test@localhost:5432/testdb" > .env.test
-            echo "HOST_PORT=8000" >> .env.test
-          fi
+      - name: Set up test environment
+        run: make setup
 
       - name: Run ${{ matrix.test_target }}
         run: make ${{ matrix.test_target }}

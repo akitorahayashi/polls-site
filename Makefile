@@ -15,6 +15,7 @@ POSTGRES_IMAGE ?= postgres:15
 # ==============================================================================
 
 # Docker Compose command wrappers
+# Using sudo is not recommended for CI/CD environments
 DEV_COMPOSE := docker compose --project-name $(PROJECT_NAME)-dev
 PROD_COMPOSE := docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
 
@@ -25,7 +26,7 @@ PROD_COMPOSE := docker compose -f docker-compose.yml --project-name $(PROJECT_NA
 .PHONY: setup
 setup: ## Install dependencies and create .env files from .env.example
 	@echo "Installing python dependencies with Poetry..."
-	@poetry install --no-root --only dev
+	@poetry install --no-root --sync
 	@echo "Creating .env files..."
 	@for env in dev prod test; do \
 		if [ ! -f .env.$$env ] && [ -f .env.example ]; then \

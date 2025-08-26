@@ -1,56 +1,48 @@
 import os
 import subprocess
 import time
-
-import psycopg2
 import pytest
+import psycopg2
 from django.core.management import call_command
-from dotenv import dotenv_values
-
 
 @pytest.fixture(scope="session")
 def db_service():
     """
     Session-scoped fixture to manage a standalone DB service using docker-compose.
-    This avoids testcontainers and the associated docker socket permission issues.
+    It symlinks .env.test to .env, which is created by `make setup`.
     """
-    env_file = ".env.test"
-    if not os.path.exists(env_file):
-        pytest.fail(f"'{env_file}' not found. Please create it from '.env.example'.")
-
-    config = dotenv_values(env_file)
     project_name = os.path.basename(os.getcwd()) + "-dev"
-    compose_command = [
-        "docker",
-        "compose",
-        "--project-name",
-        project_name,
-        "--env-file",
-        env_file,
-    ]
+    compose_command = ["docker", "compose", "--project-name", project_name]
 
-    db_host = config.get("DB_HOST", "localhost")
-    db_port = config.get("DB_PORT", "5432")
-    db_name = config.get("POSTGRES_DB", "testdb")
-    db_user = config.get("POSTGRES_USER", "user")
-    db_password = config.get("POSTGRES_PASSWORD", "password")
-
-    database_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    # `make setup` creates .env.test, but docker-compose expects .env
+    if not os.path.exists(".env.test"):
+        pytest.fail("'.env.test' not found. Please run `make setup` first.")
 
     try:
+        # Symlink .env.test to .env for docker-compose
+        if os.path.exists(".env"):
+            os.remove(".env")
+        os.symlink(".env.test", ".env")
+
         # Start only the db service
         print("\n--- Starting DB service for tests ---")
         subprocess.run(
             [*compose_command, "up", "-d", "db"],
-            check=True,
-            capture_output=True,
-            text=True,
+            check=True, capture_output=True, text=True
         )
 
         # Wait for the database to be ready
         print("--- Waiting for DB service to be ready ---")
         max_wait = 60
         start_time = time.time()
+        # Read connection details from the env file for psycopg2
+        db_host = os.environ.get("DB_HOST", "localhost")
+        db_port = os.environ.get("DB_PORT", "5432")
+        db_name = os.environ.get("POSTGRES_DB", "testdb")
+        db_user = os.environ.get("POSTGRES_USER", "user")
+        db_password = os.environ.get("POSTGRES_PASSWORD", "password")
+        database_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
         while time.time() - start_time < max_wait:
             try:
                 conn = psycopg2.connect(database_url)
@@ -62,18 +54,19 @@ def db_service():
         else:
             pytest.fail(f"DB service failed to start within {max_wait} seconds.")
 
-        # Set the DATABASE_URL for Django
         os.environ["DATABASE_URL"] = database_url
-
         yield
 
     finally:
         # Stop the db service
         print("\n--- Tearing down DB service ---")
         subprocess.run(
-            [*compose_command, "down", "-v"], check=True, capture_output=True, text=True
+            [*compose_command, "down", "-v"],
+            check=True, capture_output=True, text=True
         )
-
+        # Clean up the symlink
+        if os.path.islink(".env"):
+            os.remove(".env")
 
 @pytest.fixture(scope="session")
 def django_db_setup(django_db_setup, django_db_blocker, db_service):
