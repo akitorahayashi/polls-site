@@ -15,8 +15,8 @@ POSTGRES_IMAGE ?= postgres:15
 # ==============================================================================
 
 # Docker Compose command wrappers
-DEV_COMPOSE := sudo docker compose --project-name $(PROJECT_NAME)-dev
-PROD_COMPOSE := sudo docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+DEV_COMPOSE := docker compose --project-name $(PROJECT_NAME)-dev
+PROD_COMPOSE := docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
 
 # ==============================================================================
 # Environment Setup
@@ -146,19 +146,23 @@ lint-check: ## Check the code for issues with Ruff
 	@echo "Checking code with Ruff..."
 	poetry run ruff check config/ tests/ manage.py
 
-.PHONY: test
-test: ## Run the test suite
-	@echo "--- Setting up test environment ---"
-	@ln -sf .env.test .env
-	@$(DEV_COMPOSE) down -v --remove-orphans > /dev/null 2>&1
-	@$(DEV_COMPOSE) up -d web db
-	@echo "Waiting for database to be ready..."
-	@sleep 5
-	@$(DEV_COMPOSE) exec web poetry run python manage.py migrate
-	@echo "--- Running test suite ---"
-	@poetry run pytest
-	@echo "--- Tearing down test environment ---"
-	@$(DEV_COMPOSE) down -v --remove-orphans > /dev/null 2>&1
+.PHONY: test unit-test db-test e2e-test
+
+test: ## Run unit and database tests
+	@echo "--- Running unit and database tests ---"
+	@poetry run pytest tests/unit tests/db
+
+unit-test: ## Run unit tests
+	@echo "--- Running unit tests ---"
+	@poetry run pytest tests/unit
+
+db-test: ## Run database integration tests
+	@echo "--- Running database integration tests ---"
+	@poetry run pytest tests/db
+
+e2e-test: ## Run end-to-end tests
+	@echo "--- Running E2E tests ---"
+	@poetry run pytest tests/e2e
 
 # ==============================================================================
 # Help
