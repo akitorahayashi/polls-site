@@ -1,0 +1,27 @@
+name: E2E Tests
+
+on:
+  workflow_call:
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install and configure Poetry
+        run: |
+          pipx install poetry
+          poetry config virtualenvs.in-project true
+
+      - name: Set up test environment
+        run: make setup
+
+      - name: Run E2E tests
+        run: make e2e-test

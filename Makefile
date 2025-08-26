@@ -26,13 +26,18 @@ PROD_COMPOSE := sudo docker compose -f docker-compose.yml --project-name $(PROJE
 setup: ## Install dependencies and create .env files from .env.example
 	@echo "Installing python dependencies with Poetry..."
 	@poetry install --no-root --only dev
-	@echo "Creating .env files..."
-	@for env in dev prod test; do \
-		if [ ! -f .env.$$env ] && [ -f .env.example ]; then \
-			echo "Creating .env.$$env from .env.example..."; \
-			cp .env.example .env.$$env; \
-		fi; \
-		done
+	@echo "Creating .env files with dynamic DB names..."
+	@if [ ! -f .env.example ]; then \
+		echo ".env.example not found. Please create it first."; \
+		exit 1; \
+	fi
+	@DB_NAME_BASE=$$(grep POSTGRES_DB_NAME .env.example | cut -d '=' -f2); \
+	for env in dev prod test; do \
+		echo "Creating .env.$$env..."; \
+		cp .env.example .env.$$env; \
+		echo "\n# Generated dynamically by Makefile" >> .env.$$env; \
+		echo "POSTGRES_DB=$$DB_NAME_BASE-$$env" >> .env.$$env; \
+	done
 	@echo "Setup complete. Dependencies are installed and .env files are ready."
 
 # ==============================================================================
@@ -159,6 +164,35 @@ test: ## Run the test suite
 	@poetry run pytest
 	@echo "--- Tearing down test environment ---"
 	@$(DEV_COMPOSE) down -v --remove-orphans > /dev/null 2>&1
+
+.PHONY: e2e-test
+e2e-test: ## [E2E] Build, run tests against live containers, and cleanup
+	@echo "--- Setting up E2E test environment ---"
+	@ln -sf .env.test .env
+	@trap '$(PROD_COMPOSE) down -v --remove-orphans; rm -f .env' EXIT
+	@echo "--- Building and starting all services for E2E tests ---"
+	@$(PROD_COMPOSE) up -d --build
+	@echo "--- Waiting for Nginx to be ready ---"
+	@. ./.env.test; \
+	attempt=0; \
+	max_attempts=60; \
+	url="http://$$HOST_BIND_IP:$$WEB_PORT/polls/"; \
+	while [ $$attempt -lt $$max_attempts ]; do \
+		response_code=$$(curl -s -o /dev/null -w "%{http_code}" $$url); \
+		if [ "$$response_code" -eq 200 ]; then \
+			echo "Nginx is up! Received 200 OK from $$url"; \
+			break; \
+		else \
+			echo "Attempt $$((attempt+1)) of $$max_attempts: Waiting for Nginx (received status $$response_code)..."; \
+			sleep 1; \
+			attempt=$$((attempt+1)); \
+		fi; \
+	done; \
+	if [ $$attempt -eq $$max_attempts ]; then \
+		echo "E2E Test Failed: Nginx did not become ready in time."; \
+		exit 1; \
+	fi
+	@echo "--- E2E Test Successful ---"
 
 # ==============================================================================
 # Help
