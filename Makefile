@@ -14,9 +14,19 @@ POSTGRES_IMAGE ?= postgres:15
 # Docker Commands
 # ==============================================================================
 
-# Docker Compose command wrappers
 DEV_COMPOSE := sudo docker compose --project-name $(PROJECT_NAME)-dev
 PROD_COMPOSE := sudo docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+
+# ==============================================================================
+# Help
+# ==============================================================================
+
+.PHONY: help
+help: ## Show this help message
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Available targets:"
+	@awk 'BEGIN {FS = ":.*?## "; OFS=" "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # ==============================================================================
 # Environment Setup
@@ -25,7 +35,7 @@ PROD_COMPOSE := sudo docker compose -f docker-compose.yml --project-name $(PROJE
 .PHONY: setup
 setup: ## Install dependencies and create .env files from .env.example
 	@echo "Installing python dependencies with Poetry..."
-	@poetry install --no-root --only dev
+	@poetry install --no-root
 	@echo "Creating .env files..."
 	@for env in dev prod test; do \
 		if [ ! -f .env.$$env ] && [ -f .env.example ]; then \
@@ -51,6 +61,18 @@ down: ## Stop dev containers
 	@echo "Stopping DEV containers..."
 	@$(DEV_COMPOSE) down --remove-orphans
 
+.PHONY: up-prod
+up-prod: ## Build images and start prod-like containers
+	@ln -sf .env.prod .env
+	@echo "Starting up PROD-like services..."
+	@$(PROD_COMPOSE) up -d --build
+
+.PHONY: down-prod
+down-prod: ## Stop prod-like containers
+	@ln -sf .env.prod .env
+	@echo "Shutting down PROD-like services..."
+	@$(PROD_COMPOSE) down --remove-orphans
+
 rebuild: ## Rebuild services, pulling base images, without cache, and restart them
 	@echo "Rebuilding all services with --no-cache and --pull..."
 	@ln -sf .env.dev .env
@@ -73,22 +95,6 @@ shell: ## Start a shell inside the dev 'web' container
 	@ln -sf .env.dev .env
 	@$(DEV_COMPOSE) ps --status=running --services | grep -q '^web$$' || { echo "web container is not running. Please run 'make up' first." >&2; exit 1; }
 	@$(DEV_COMPOSE) exec web /bin/sh
-
-# ==============================================================================
-# Production-like Environment Commands
-# ==============================================================================
-
-.PHONY: up-prod
-up-prod: ## Build images and start prod-like containers
-	@ln -sf .env.prod .env
-	@echo "Starting up PROD-like services..."
-	@$(PROD_COMPOSE) up -d --build
-
-.PHONY: down-prod
-down-prod: ## Stop prod-like containers
-	@ln -sf .env.prod .env
-	@echo "Shutting down PROD-like services..."
-	@$(PROD_COMPOSE) down --remove-orphans
 
 # ==============================================================================
 # Django Management Commands
@@ -146,27 +152,22 @@ lint-check: ## Check the code for issues with Ruff
 	@echo "Checking code with Ruff..."
 	poetry run ruff check config/ tests/ manage.py
 
-.PHONY: test
-test: ## Run the test suite
-	@echo "--- Setting up test environment ---"
+.PHONY: unit-test
+unit-test: ## Run the fast, database-independent unit tests locally
+	@echo "Running unit tests..."
+	@poetry run python -m pytest tests/unit
+
+.PHONY: db-test
+db-test: ## Run the slower, database-dependent tests locally
+	@echo "Running database tests..."
+	@poetry run python -m pytest tests/db
+	
+.PHONY: e2e-test
+e2e-test: ## Run end-to-end tests against a live application stack
+	@echo "Running end-to-end tests..."
 	@ln -sf .env.test .env
-	@$(DEV_COMPOSE) down -v --remove-orphans > /dev/null 2>&1
-	@$(DEV_COMPOSE) up -d web db
-	@echo "Waiting for database to be ready..."
-	@sleep 5
-	@$(DEV_COMPOSE) exec web poetry run python manage.py migrate
-	@echo "--- Running test suite ---"
-	@poetry run pytest
-	@echo "--- Tearing down test environment ---"
-	@$(DEV_COMPOSE) down -v --remove-orphans > /dev/null 2>&1
+	@poetry run python -m pytest tests/e2e
 
-# ==============================================================================
-# Help
-# ==============================================================================
+.PHONY: test
+test: unit-test db-test e2e-test ## Run the full test suite
 
-.PHONY: help
-help: ## Show this help message
-	@echo "Usage: make [target]"
-	@echo ""
-	@echo "Available targets:"
-	@awk 'BEGIN {FS = ":.*?## "; OFS=" "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
