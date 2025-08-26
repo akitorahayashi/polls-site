@@ -20,9 +20,6 @@ jobs:
           pipx install poetry
           poetry config virtualenvs.in-project true
 
-      - name: Install dependencies
-        run: poetry install --no-root --with dev
-
       - name: Set up test environment
         run: make setup
 
