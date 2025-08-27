@@ -8,7 +8,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ${COMPOSE_PROJECT_NAME:-polls-site}-static-volume:/app/static
+      - static-volume:/app/static
     depends_on:
       db:
         condition: service_healthy
@@ -23,7 +23,7 @@ services:
   db:
     image: postgres:16-alpine
     volumes:
-      - ${COMPOSE_PROJECT_NAME:-polls-site}-postgres-db:/var/lib/postgresql/data
+      - postgres-db:/var/lib/postgresql/data
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -41,13 +41,11 @@ services:
     ports:
       - "${WEB_HOST:-127.0.0.1}:${WEB_PORT:-8000}:80"
     volumes:
-      - ${COMPOSE_PROJECT_NAME:-polls-site}-static-volume:/app/static
+      - static-volume:/app/static
     depends_on:
       - web
     restart: unless-stopped
 
 volumes:
-  ${COMPOSE_PROJECT_NAME:-polls-site}-postgres-db:
-    external: false
-  ${COMPOSE_PROJECT_NAME:-polls-site}-static-volume:
-    external: false
+  postgres-db:
+  static-volume:
