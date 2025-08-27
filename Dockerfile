@@ -67,17 +67,15 @@ ENV PATH="/app/.venv/bin:${PATH}"
 COPY --chown=appuser:app manage.py ./
 COPY --chown=appuser:app config/ ./config/
 COPY --chown=appuser:app entrypoint.sh ./
-COPY --chown=appuser:app healthcheck.py ./
-
-RUN chmod +x entrypoint.sh healthcheck.py
+RUN chmod +x entrypoint.sh
 
 USER appuser
 
 EXPOSE 8000
 
-ENV HEALTHCHECK_PATH=/health
+ENV HEALTHCHECK_PATH=/health/
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD ["python", "healthcheck.py"]
+    CMD ["sh", "-c", "python -c \"import os,sys,urllib.request; url=f'http://localhost:8000{os.getenv(\\\"HEALTHCHECK_PATH\\\",\\\"/health/\\\")}'; r=urllib.request.urlopen(url, timeout=5); sys.exit(0 if getattr(r,'status',200)==200 else 1)\""]
 
 ENTRYPOINT ["/app/entrypoint.sh"]

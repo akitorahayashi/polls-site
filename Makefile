@@ -2,9 +2,6 @@
 
 PROJECT_NAME := $(shell basename $(CURDIR))
 
-.PHONY: all rebuild
-all: help ## Default target
-
 # ==============================================================================
 # Variables
 # ==============================================================================
@@ -14,12 +11,16 @@ POSTGRES_IMAGE ?= postgres:15
 # Docker Commands
 # ==============================================================================
 
-DEV_COMPOSE := sudo docker compose --project-name $(PROJECT_NAME)-dev
-PROD_COMPOSE := sudo docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+DEV_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=dev docker compose --project-name $(PROJECT_NAME)-dev
+PROD_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=prod docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+TEST_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=test docker compose --project-name $(PROJECT_NAME)-test
 
 # ==============================================================================
 # Help
 # ==============================================================================
+
+.PHONY: all
+all: help ## Default target
 
 .PHONY: help
 help: ## Show this help message
@@ -73,10 +74,11 @@ down-prod: ## Stop prod-like containers
 	@echo "Shutting down PROD-like services..."
 	@$(PROD_COMPOSE) down --remove-orphans
 
+.PHONY: rebuild
 rebuild: ## Rebuild services, pulling base images, without cache, and restart them
 	@echo "Rebuilding all services with --no-cache and --pull..."
 	@ln -sf .env.dev .env
-	@$(DEV_COMPOSE) up -d --build --no-cache --pull always
+	@$(DEV_COMPOSE) up -d --build --no-cache --pull always --force-recreate
 
 .PHONY: clean
 clean: ## Completely remove dev containers, volumes, and orphans
@@ -133,24 +135,18 @@ superuser-prod: ## [PROD] Create a Django superuser
 # ==============================================================================
 
 .PHONY: format
-format: ## Format the code using Black
+format: ## Format code with Black and fix Ruff issues
 	@echo "Formatting code with Black..."
-	poetry run black config/ tests/ manage.py
-
-.PHONY: format-check
-format-check: ## Check if the code is formatted with Black
-	@echo "Checking code format with Black..."
-	poetry run black --check config/ tests/ manage.py
+	poetry run black .
+	@echo "Fixing code issues with Ruff..."
+	poetry run ruff check . --fix
 
 .PHONY: lint
-lint: ## Lint and fix the code with Ruff automatically
-	@echo "Linting and fixing code with Ruff..."
-	poetry run ruff check config/ tests/ manage.py --fix
-
-.PHONY: lint-check
-lint-check: ## Check the code for issues with Ruff
-	@echo "Checking code with Ruff..."
-	poetry run ruff check config/ tests/ manage.py
+lint: ## Check code format and lint issues without fixing
+	@echo "Checking code format with Black..."
+	poetry run black --check .
+	@echo "Checking code issues with Ruff..."
+	poetry run ruff check .
 
 .PHONY: unit-test
 unit-test: ## Run the fast, database-independent unit tests locally
@@ -166,8 +162,22 @@ db-test: ## Run the slower, database-dependent tests locally
 e2e-test: ## Run end-to-end tests against a live application stack
 	@echo "Running end-to-end tests..."
 	@ln -sf .env.test .env
-	@poetry run python -m pytest tests/e2e
+	@PROJECT_NAME=$(PROJECT_NAME) ENV=test poetry run python -m pytest tests/e2e
+
+.PHONY: build-test
+build-test: ## Test Docker image build without leaving artifacts
+	@echo "Testing Docker image build..."
+	@IMAGE_NAME="polls-site-build-test-$$(date +%s)"; \
+	if docker build -t "$$IMAGE_NAME" . --target production --no-cache; then \
+		echo "✅ Docker build test passed"; \
+		docker rmi "$$IMAGE_NAME" >/dev/null 2>&1 || true; \
+		exit 0; \
+	else \
+		echo "❌ Docker build test failed"; \
+		docker rmi "$$IMAGE_NAME" >/dev/null 2>&1 || true; \
+		exit 1; \
+	fi
 
 .PHONY: test
-test: unit-test db-test e2e-test ## Run the full test suite
+test: unit-test build-test db-test e2e-test ## Run the full test suite
 

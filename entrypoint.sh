@@ -1,42 +1,32 @@
 #!/bin/sh
 
-# Exit immediately if a command exits with a non-zero status.
-set -e
-# Exit immediately if a variable is unset.
-set -u
+# Exit immediately if a command exits with a non-zero status ('e')
+# or if an unset variable is used ('u').
+set -eu
 
 # Wait for the database to be ready
-echo "Waiting for database..."
+DB_HOST=${DB_HOST:-db}
+DB_PORT=${DB_PORT:-5432}
+WAIT_TIMEOUT=${WAIT_TIMEOUT:-60}
 
-# Use a Python script to wait for the database, removing dependency on netcat
-python -c '
-import socket
-import time
-import os
-import sys
+echo "Waiting for database connection at ${DB_HOST}:${DB_PORT}..."
 
-host = os.environ.get("DB_HOST", "db")
-port = int(os.environ.get("DB_PORT", 5432))
-timeout = int(os.environ.get("WAIT_TIMEOUT", 60))
-
-start_time = time.monotonic()
-while True:
-    try:
-        with socket.create_connection((host, port), timeout=1):
-            break
-    except (socket.timeout, ConnectionRefusedError, OSError):
-        if time.monotonic() - start_time >= timeout:
-            print(f"Error: Timed out waiting for database connection at {host}:{port}", file=sys.stderr)
-            sys.exit(1)
-        print(f"Waiting for database connection at {host}:{port}...")
-        time.sleep(1)
-'
+count=0
+while ! nc -z "${DB_HOST}" "${DB_PORT}"; do
+    count=$((count + 1))
+    if [ ${count} -ge ${WAIT_TIMEOUT} ]; then
+        echo "Error: Timed out waiting for database connection at ${DB_HOST}:${DB_PORT}" >&2
+        exit 1
+    fi
+    echo "Waiting for database connection... (${count}/${WAIT_TIMEOUT}s)"
+    sleep 1
+done
 
 echo "Database is ready."
 
 # Apply database migrations
 echo "Applying database migrations..."
-python manage.py migrate
+python manage.py migrate --noinput
 
 # Execute the command passed to the script (e.g., gunicorn)
 echo "Starting application..."
