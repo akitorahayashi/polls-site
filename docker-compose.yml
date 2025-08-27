@@ -2,35 +2,49 @@ services:
   web:
     build:
       context: .
+      dockerfile: Dockerfile
       target: production
-    image: polls-site-web
-    env_file: .env
+    restart: unless-stopped
+    env_file:
+      - .env
     volumes:
-      - static_volume:/app/staticfiles
+      - static_volume:/app/static
     depends_on:
       db:
         condition: service_healthy
-
-  db:
-    image: postgres:15
-    env_file: .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h localhost" ]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+      # curlを使用して新しい/health/エンドポイントをチェック
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
       start_period: 5s
 
-  nginx:
-    build: ./nginx
+  db:
+    image: postgres:16-alpine
     volumes:
-      - static_volume:/app/staticfiles
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./nginx
     ports:
-      - "${HOST_BIND_IP:-127.0.0.1}:${WEB_PORT:-8000}:80"
+      - "${WEB_HOST:-127.0.0.1}:${WEB_PORT:-8000}:80"
+    volumes:
+      - static_volume:/app/static
     depends_on:
       - web
+    restart: unless-stopped
 
 volumes:
   postgres_data:
