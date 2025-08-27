@@ -69,7 +69,10 @@ def e2e_setup() -> Generator[None, None, None]:
         while time.time() - start_time < timeout:
             try:
                 response = httpx.get(health_url, timeout=5)
-                if response.status_code == 200 and response.json().get("status") == "ok":
+                if (
+                    response.status_code == 200
+                    and response.json().get("status") == "ok"
+                ):
                     print("✅ Application is healthy!")
                     is_healthy = True
                     break
@@ -78,7 +81,12 @@ def e2e_setup() -> Generator[None, None, None]:
                 time.sleep(5)
 
         if not is_healthy:
-            log_command = docker_command + ["compose", "--project-name", project_name, "logs"]
+            log_command = docker_command + [
+                "compose",
+                "--project-name",
+                project_name,
+                "logs",
+            ]
             subprocess.run(log_command)
             pytest.fail(f"Application did not become healthy within {timeout} seconds.")
 

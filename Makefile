@@ -134,23 +134,17 @@ superuser-prod: ## [PROD] Create a Django superuser
 # ==============================================================================
 
 .PHONY: format
-format: ## Format the code using Black
+format: ## Format code with Black and fix Ruff issues
 	@echo "Formatting code with Black..."
 	poetry run black config/ tests/ manage.py
-
-.PHONY: format-check
-format-check: ## Check if the code is formatted with Black
-	@echo "Checking code format with Black..."
-	poetry run black --check config/ tests/ manage.py
-
-.PHONY: lint
-lint: ## Lint and fix the code with Ruff automatically
-	@echo "Linting and fixing code with Ruff..."
+	@echo "Fixing code issues with Ruff..."
 	poetry run ruff check config/ tests/ manage.py --fix
 
-.PHONY: lint-check
-lint-check: ## Check the code for issues with Ruff
-	@echo "Checking code with Ruff..."
+.PHONY: lint
+lint: ## Check code format and lint issues without fixing
+	@echo "Checking code format with Black..."
+	poetry run black --check config/ tests/ manage.py
+	@echo "Checking code issues with Ruff..."
 	poetry run ruff check config/ tests/ manage.py
 
 .PHONY: unit-test
