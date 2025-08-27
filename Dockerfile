@@ -73,9 +73,9 @@ USER appuser
 
 EXPOSE 8000
 
-ENV HEALTHCHECK_PATH=/health
+ENV HEALTHCHECK_PATH=/health/
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/', timeout=5)"]
+    CMD ["sh", "-c", "python -c \"import os,sys,urllib.request; url=f'http://localhost:8000{os.getenv(\\\"HEALTHCHECK_PATH\\\",\\\"/health/\\\")}'; r=urllib.request.urlopen(url, timeout=5); sys.exit(0 if getattr(r,'status',200)==200 else 1)\""]
 
 ENTRYPOINT ["/app/entrypoint.sh"]

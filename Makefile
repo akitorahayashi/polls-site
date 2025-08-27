@@ -11,9 +11,9 @@ POSTGRES_IMAGE ?= postgres:15
 # Docker Commands
 # ==============================================================================
 
-DEV_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=dev sudo docker compose --project-name $(PROJECT_NAME)-dev
-PROD_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=prod sudo docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
-TEST_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=test sudo docker compose --project-name $(PROJECT_NAME)-test
+DEV_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=dev docker compose --project-name $(PROJECT_NAME)-dev
+PROD_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=prod docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+TEST_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=test docker compose --project-name $(PROJECT_NAME)-test
 
 # ==============================================================================
 # Help
@@ -78,7 +78,7 @@ down-prod: ## Stop prod-like containers
 rebuild: ## Rebuild services, pulling base images, without cache, and restart them
 	@echo "Rebuilding all services with --no-cache and --pull..."
 	@ln -sf .env.dev .env
-	@$(DEV_COMPOSE) up -d --build --no-cache --pull always
+	@$(DEV_COMPOSE) up -d --build --no-cache --pull always --force-recreate
 
 .PHONY: clean
 clean: ## Completely remove dev containers, volumes, and orphans
@@ -137,16 +137,16 @@ superuser-prod: ## [PROD] Create a Django superuser
 .PHONY: format
 format: ## Format code with Black and fix Ruff issues
 	@echo "Formatting code with Black..."
-	poetry run black config/ tests/ manage.py
+	poetry run black .
 	@echo "Fixing code issues with Ruff..."
-	poetry run ruff check config/ tests/ manage.py --fix
+	poetry run ruff check . --fix
 
 .PHONY: lint
 lint: ## Check code format and lint issues without fixing
 	@echo "Checking code format with Black..."
-	poetry run black --check config/ tests/ manage.py
+	poetry run black --check .
 	@echo "Checking code issues with Ruff..."
-	poetry run ruff check config/ tests/ manage.py
+	poetry run ruff check .
 
 .PHONY: unit-test
 unit-test: ## Run the fast, database-independent unit tests locally
