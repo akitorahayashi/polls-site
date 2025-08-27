@@ -14,8 +14,9 @@ POSTGRES_IMAGE ?= postgres:15
 # Docker Commands
 # ==============================================================================
 
-DEV_COMPOSE := sudo docker compose --project-name $(PROJECT_NAME)-dev
-PROD_COMPOSE := sudo docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+DEV_COMPOSE := COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-dev sudo docker compose --project-name $(PROJECT_NAME)-dev
+PROD_COMPOSE := COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-prod sudo docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+TEST_COMPOSE := COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-test sudo docker compose --project-name $(PROJECT_NAME)-test
 
 # ==============================================================================
 # Help
@@ -166,7 +167,7 @@ db-test: ## Run the slower, database-dependent tests locally
 e2e-test: ## Run end-to-end tests against a live application stack
 	@echo "Running end-to-end tests..."
 	@ln -sf .env.test .env
-	@poetry run python -m pytest tests/e2e
+	@COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-test poetry run python -m pytest tests/e2e
 
 .PHONY: test
 test: unit-test db-test e2e-test ## Run the full test suite

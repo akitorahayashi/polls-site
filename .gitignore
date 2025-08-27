@@ -29,6 +29,7 @@ logs/
 # IDE/エディタ
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 
