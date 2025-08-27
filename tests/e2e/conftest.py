@@ -53,12 +53,14 @@ def e2e_setup() -> Generator[None, None, None]:
             "--project-name",
             project_name,
             "exec",
+            "-T",
             "web",
             "poetry",
             "run",
             "python",
             "manage.py",
             "migrate",
+            "--noinput",
         ]
         subprocess.run(migrate_command, check=True)
 
@@ -69,15 +71,19 @@ def e2e_setup() -> Generator[None, None, None]:
         while time.time() - start_time < timeout:
             try:
                 response = httpx.get(health_url, timeout=5)
-                if (
-                    response.status_code == 200
-                    and response.json().get("status") == "ok"
-                ):
-                    print("✅ Application is healthy!")
-                    is_healthy = True
-                    break
+                if response.status_code == 200:
+                    try:
+                        if response.json().get("status") == "ok":
+                            print("✅ Application is healthy!")
+                            is_healthy = True
+                            break
+                    except ValueError:
+                        # JSON でない応答（起動途中など）
+                        pass
+                print("⏳ Application not yet healthy, retrying...")
             except (httpx.RequestError, httpx.ConnectError):
                 print("⏳ Application not yet healthy, retrying...")
+            finally:
                 time.sleep(5)
 
         if not is_healthy:

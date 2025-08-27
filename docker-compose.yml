@@ -13,12 +13,12 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      # curlを使用して新しい/health/エンドポイントをチェック
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      # Python標準ライブラリで/health/をチェック（追加依存なし）
+      test: ["CMD-SHELL", "python -c \"import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health/', timeout=5).status==200 else 1)\""]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 5s
+      start_period: 20s
 
   db:
     image: postgres:16-alpine
@@ -48,4 +48,8 @@ services:
 
 volumes:
   postgres-db:
+    name: ${COMPOSE_PROJECT_NAME:-polls-site}-postgres-db
+    external: false
   static-volume:
+    name: ${COMPOSE_PROJECT_NAME:-polls-site}-static-volume
+    external: false

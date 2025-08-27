@@ -31,6 +31,7 @@ ruff = "^0.12.9"
 testcontainers = {extras = ["postgres"], version = "^4.6.0"}
 httpx = "^0.28.1"
 pytest-asyncio = "^1.1.0"
+python-dotenv = "^1.0.1"
 
 [tool.black]
 target-version = ['py312']

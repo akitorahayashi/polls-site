@@ -2,9 +2,6 @@
 
 PROJECT_NAME := $(shell basename $(CURDIR))
 
-.PHONY: all rebuild
-all: help ## Default target
-
 # ==============================================================================
 # Variables
 # ==============================================================================
@@ -21,6 +18,9 @@ TEST_COMPOSE := COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-test sudo docker compose --
 # ==============================================================================
 # Help
 # ==============================================================================
+
+.PHONY: all
+all: help ## Default target
 
 .PHONY: help
 help: ## Show this help message
@@ -74,6 +74,7 @@ down-prod: ## Stop prod-like containers
 	@echo "Shutting down PROD-like services..."
 	@$(PROD_COMPOSE) down --remove-orphans
 
+.PHONY: rebuild
 rebuild: ## Rebuild services, pulling base images, without cache, and restart them
 	@echo "Rebuilding all services with --no-cache and --pull..."
 	@ln -sf .env.dev .env
@@ -178,5 +179,5 @@ build-test: ## Test Docker image build without leaving artifacts
 	fi
 
 .PHONY: test
-test: unit-test db-test e2e-test ## Run the full test suite
+test: unit-test build-test db-test e2e-test ## Run the full test suite
 
