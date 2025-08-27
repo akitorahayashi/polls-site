@@ -163,6 +163,20 @@ e2e-test: ## Run end-to-end tests against a live application stack
 	@ln -sf .env.test .env
 	@COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-test poetry run python -m pytest tests/e2e
 
+.PHONY: build-test
+build-test: ## Test Docker image build without leaving artifacts
+	@echo "Testing Docker image build..."
+	@IMAGE_NAME="polls-site-build-test-$$(date +%s)"; \
+	if docker build -t "$$IMAGE_NAME" . --target production --no-cache; then \
+		echo "✅ Docker build test passed"; \
+		docker rmi "$$IMAGE_NAME" >/dev/null 2>&1 || true; \
+		exit 0; \
+	else \
+		echo "❌ Docker build test failed"; \
+		docker rmi "$$IMAGE_NAME" >/dev/null 2>&1 || true; \
+		exit 1; \
+	fi
+
 .PHONY: test
 test: unit-test db-test e2e-test ## Run the full test suite
 
