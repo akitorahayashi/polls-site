@@ -26,7 +26,7 @@ echo "Database is ready."
 
 # Apply database migrations
 echo "Applying database migrations..."
-python manage.py migrate
+python manage.py migrate --noinput
 
 # Execute the command passed to the script (e.g., gunicorn)
 echo "Starting application..."

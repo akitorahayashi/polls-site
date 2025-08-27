@@ -11,9 +11,9 @@ POSTGRES_IMAGE ?= postgres:15
 # Docker Commands
 # ==============================================================================
 
-DEV_COMPOSE := COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-dev sudo docker compose --project-name $(PROJECT_NAME)-dev
-PROD_COMPOSE := COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-prod sudo docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
-TEST_COMPOSE := COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-test sudo docker compose --project-name $(PROJECT_NAME)-test
+DEV_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=dev sudo docker compose --project-name $(PROJECT_NAME)-dev
+PROD_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=prod sudo docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+TEST_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=test sudo docker compose --project-name $(PROJECT_NAME)-test
 
 # ==============================================================================
 # Help
@@ -162,7 +162,7 @@ db-test: ## Run the slower, database-dependent tests locally
 e2e-test: ## Run end-to-end tests against a live application stack
 	@echo "Running end-to-end tests..."
 	@ln -sf .env.test .env
-	@COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-test poetry run python -m pytest tests/e2e
+	@PROJECT_NAME=$(PROJECT_NAME) ENV=test poetry run python -m pytest tests/e2e
 
 .PHONY: build-test
 build-test: ## Test Docker image build without leaving artifacts
