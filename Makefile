@@ -202,7 +202,7 @@ db-test: ## Run the slower, database-dependent tests locally
 .PHONY: e2e-test
 e2e-test: ## Run end-to-end tests against a live application stack
 	@echo "Running end-to-end tests..."
-	@python -m pytest tests/e2e -v -s
+	@$(PYTHON) -m pytest tests/e2e -v -s
 
 
 .PHONY: build-test

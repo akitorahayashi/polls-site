@@ -1,11 +1,12 @@
 import os
-import subprocess
 import time
+from pathlib import Path
 from typing import Generator
 
-import httpx
 import pytest
+import requests
 from dotenv import load_dotenv
+from testcontainers.compose import DockerCompose
 
 
 # Override pytest-django's autouse fixture to disable mail.outbox clearing for e2e tests
@@ -16,123 +17,59 @@ def _dj_autoclear_mailbox():
     pass
 
 
+def _is_service_ready(url: str, expected_status: int = 200) -> bool:
+    """HTTPサービスがリクエストを受け付ける準備ができているかを確認します。"""
+    try:
+        response = requests.get(url, timeout=5)
+        return response.status_code == expected_status
+    except requests.exceptions.ConnectionError:
+        return False
+
+
+def _wait_for_service(url: str, timeout: int = 120, interval: int = 5) -> None:
+    """HTTPサービスが準備完了になるまでタイムアウト付きで待機します。"""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if _is_service_ready(url):
+            return
+        time.sleep(interval)
+    raise TimeoutError(
+        f"Service at {url} did not become ready within {timeout} seconds"
+    )
+
+
 @pytest.fixture(scope="session")
-def docker_server() -> Generator[str, None, None]:
-    """
-    Sets up a live application stack using Docker Compose for end-to-end testing.
-
-    This fixture:
-    1. Starts Docker Compose services using the test configuration
-    2. Waits for the application to become healthy
-    3. Yields the base URL for tests
-    4. Cleans up containers after tests complete
-    """
-    # Load environment variables
+def app_container() -> Generator[DockerCompose, None, None]:
+    """Docker Composeを介して完全に実行中のアプリケーションスタックを提供します。"""
     load_dotenv(".env")
-
-    # Get configuration from environment
-    project_name = os.getenv("PROJECT_NAME", "polls-site")
-    test_port = os.getenv("TEST_PORT", "8002")
-    web_host = os.getenv("WEB_HOST", "127.0.0.1")
-
-    # Docker Compose command with test configuration
-    compose_cmd = [
-        "docker",
-        "compose",
-        "-f",
+    compose_files = [
         "docker-compose.yml",
-        "-f",
         "docker-compose.test.override.yml",
-        "--project-name",
-        f"{project_name}-test",
     ]
 
-    base_url = f"http://{web_host}:{test_port}"
-    health_url = f"{base_url}/health/"
+    project_root = Path(__file__).parent.parent.parent
+    compose_file_paths = [str(project_root / file) for file in compose_files]
 
-    try:
-        print("\nStarting Docker Compose services for testing...")
+    with DockerCompose(
+        str(project_root),
+        compose_file_name=compose_file_paths,
+        build=True,
+    ) as compose:
+        host_port = os.getenv("TEST_PORT", "8002")
+        assert (
+            compose.get_container("nginx") is not None
+        ), "nginx container could not be found."
 
-        # Start containers
-        subprocess.run(
-            compose_cmd + ["up", "-d", "--build"],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        health_check_url = f"http://localhost:{host_port}/health/"
 
-        print(f"⏳ Waiting for application to be ready at {health_url}...")
+        _wait_for_service(health_check_url, timeout=120, interval=5)
 
-        # Wait for application to be healthy
-        start_time = time.time()
-        timeout = 120  # Increased timeout for Docker startup
-        is_healthy = False
-
-        # Improve healthcheck loop to sleep after each attempt and catch general exceptions
-        while time.time() - start_time < timeout:
-            try:
-                response = httpx.get(health_url, timeout=10)
-                if (
-                    response.status_code == 200
-                    and response.json().get("status") == "ok"
-                ):
-                    print("✅ Application is healthy!")
-                    is_healthy = True
-                    break
-                else:
-                    print(
-                        f"⏳ Waiting for application... (status: {response.status_code})"
-                    )
-            except Exception as e:
-                print(f"⏳ Waiting for application... ({e.__class__.__name__})")
-            # Sleep between attempts to avoid tight loop
-            time.sleep(3)
-
-        if not is_healthy:
-            # Get logs for debugging
-            print("❌ Application failed to start. Getting logs...")
-            try:
-                logs_result = subprocess.run(
-                    compose_cmd + ["logs"],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                )
-                print("--- Docker Compose Logs ---")
-                print(logs_result.stdout)
-                if logs_result.stderr:
-                    print("--- Docker Compose Errors ---")
-                    print(logs_result.stderr)
-            except subprocess.TimeoutExpired:
-                print("Timeout while getting logs")
-
-            pytest.fail(
-                f"Application did not become healthy within {timeout} seconds. "
-                f"Check Docker Compose logs above."
-            )
-
-        print(f"🚀 E2E test environment ready at {base_url}")
-        yield base_url
-
-    finally:
-        print("\n🛑 Stopping Docker Compose services...")
-        try:
-            subprocess.run(
-                compose_cmd + ["down", "--remove-orphans"],
-                check=True,
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            print("✅ Docker Compose services stopped successfully")
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-            print(f"⚠️ Warning: Failed to stop some containers: {e}")
+        compose.host_port = host_port
+        yield compose
 
 
 @pytest.fixture(scope="session")
-def page_url(docker_server: str) -> str:
-    """
-    Returns the base URL of the docker server.
-    """
-    return f"{docker_server}/"
+def page_url(app_container: DockerCompose) -> str:
+    """実行中のアプリケーションのベースURLを返します。"""
+    host_port = app_container.host_port
+    return f"http://localhost:{host_port}/"
