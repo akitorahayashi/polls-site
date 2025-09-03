@@ -2,61 +2,70 @@
 name = "polls-site"
 version = "0.1.0"
 description = "A Django site running the polls app."
+authors = [{ name = "akitorahayashi", email = "atora.has75@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.12,<4.0"
+dependencies = [
+    "django>=5.2.5,<6.0.0",
+    "gunicorn>=23.0.0,<24.0.0",
+    "psycopg2-binary>=2.9.10,<3.0.0",
+    "polls-app @ git+https://github.com/akitorahayashi/polls-app.git",
+    "dj-database-url>=2.2.0,<3.0.0",
+]
 
-[tool.poetry.dependencies]
-django = ">=5.2.5,<6.0.0"
-gunicorn = ">=23.0.0,<24.0.0"
-psycopg2-binary = ">=2.9.10,<3.0.0"
-polls-app = { git = "https://github.com/akitorahayashi/polls-app.git" }
-dj-database-url = ">=2.2.0,<3.0.0"
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "filelock>=3.12.0,<4.0.0",
+    "ipython>=9.4.0",
+    "pytest>=8.0.0,<9.0.0",
+    "pytest-django>=4.0.0,<5.0.0",
+    "pytest-xdist>=3.0.0,<4.0.0",
+    "ruff>=0.12.9",
+    "testcontainers[postgres]>=4.6.0",
+    "httpx>=0.28.1",
+    "pytest-asyncio>=1.1.0",
+    "python-dotenv>=1.0.1",
+]
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
-package-mode = false
-
-
-[tool.poetry.group.dev.dependencies]
-black = "^25.1.0"
-filelock = ">=3.12.0,<4.0.0"
-ipython = "^9.4.0"
-pytest = ">=8.0.0,<9.0.0"
-pytest-django = ">=4.0.0,<5.0.0"
-pytest-xdist = ">=3.0.0,<4.0.0"
-ruff = "^0.12.9"
-testcontainers = {extras = ["postgres"], version = "^4.6.0"}
-httpx = "^0.28.1"
-pytest-asyncio = "^1.1.0"
-python-dotenv = "^1.0.1"
+[tool.uv]
+package = false
 
 [tool.black]
 target-version = ['py312']
 exclude = '''
-/(\
+/(
     \.git
     | \.mypy_cache
     | \.venv
+    | venv
+    | env
     | build
     | dist
+    | .*/(bin|lib|share|etc)
+    | .*/pyvenv\.cfg
 )/
 '''
 
 [tool.ruff]
 target-version = "py312"
-
 exclude = [
-    ".git",
-    "__pycache__",
-    ".venv",
-    "build",
-    "dist",
+	"__pycache__",
 	"migrations",
 	"db.sqlite3",
-	"*.pyc"
+	"*.pyc",
+	".venv",
+	"venv",
+	"env",
+	"*/bin/**",
+	"*/lib/**",
+	"*/share/**",
+	"*/etc/**",
+	"*/pyvenv.cfg"
 ]
 
 [tool.ruff.lint]

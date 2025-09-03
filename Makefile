@@ -33,18 +33,20 @@ help: ## Show this help message
 # Environment Setup
 # ==============================================================================
 
+PYTHON := ./.venv/bin/python
+
 .PHONY: setup
 setup: ## Install dependencies and create .env files from .env.example
-	@echo "Installing python dependencies with Poetry..."
-	@poetry install --no-root
-	@echo "Creating .env files..."
+	@echo "🐍 Installing python dependencies with uv..."
+	@uv sync --extra dev
+	@echo "📄 Creating .env files..."
 	@for env in dev prod test; do \
 		if [ ! -f .env.$$env ] && [ -f .env.example ]; then \
 			echo "Creating .env.$$env from .env.example..."; \
 			cp .env.example .env.$$env; \
 		fi; \
 		done
-	@echo "Setup complete. Dependencies are installed and .env files are ready."
+	@echo "✅ Setup complete. Dependencies are installed and .env files are ready."
 
 # ==============================================================================
 # Development Environment Commands
@@ -104,19 +106,19 @@ shell: ## Start a shell inside the dev 'web' container
 .PHONY: makemigrations
 makemigrations: ## [DEV] Create migration files
 	@ln -sf .env.dev .env
-	@$(DEV_COMPOSE) exec web poetry run python manage.py makemigrations
+	@$(DEV_COMPOSE) exec web uv run python manage.py makemigrations
 
 .PHONY: migrate
 migrate: ## [DEV] Run database migrations
 	@ln -sf .env.dev .env
 	@echo "Running DEV database migrations..."
-	@$(DEV_COMPOSE) exec web poetry run python manage.py migrate
+	@$(DEV_COMPOSE) exec web uv run python manage.py migrate
 
 .PHONY: superuser
 superuser: ## [DEV] Create a Django superuser
 	@ln -sf .env.dev .env
 	@echo "Creating DEV superuser..."
-	@$(DEV_COMPOSE) exec web poetry run python manage.py createsuperuser
+	@$(DEV_COMPOSE) exec web uv run python manage.py createsuperuser
 
 .PHONY: migrate-prod
 migrate-prod: ## [PROD] Run database migrations
@@ -136,33 +138,33 @@ superuser-prod: ## [PROD] Create a Django superuser
 
 .PHONY: format
 format: ## Format code with Black and fix Ruff issues
-	@echo "Formatting code with Black..."
-	poetry run black .
-	@echo "Fixing code issues with Ruff..."
-	poetry run ruff check . --fix
+	@echo "🎨 Formatting code with Black..."
+	@$(PYTHON) -m black .
+	@echo "🔧 Fixing code issues with Ruff..."
+	@$(PYTHON) -m ruff check . --fix
 
 .PHONY: lint
 lint: ## Check code format and lint issues without fixing
-	@echo "Checking code format with Black..."
-	poetry run black --check .
-	@echo "Checking code issues with Ruff..."
-	poetry run ruff check .
+	@echo "🔬 Checking code format with Black..."
+	@$(PYTHON) -m black --check .
+	@echo "🔍 Checking code issues with Ruff..."
+	@$(PYTHON) -m ruff check .
 
 .PHONY: unit-test
 unit-test: ## Run the fast, database-independent unit tests locally
-	@echo "Running unit tests..."
-	@poetry run python -m pytest tests/unit
+	@echo "🧪 Running unit tests..."
+	@$(PYTHON) -m pytest tests/unit -v -s
 
 .PHONY: db-test
 db-test: ## Run the slower, database-dependent tests locally
-	@echo "Running database tests..."
-	@poetry run python -m pytest tests/db
+	@echo "🗄️ Running database tests..."
+	@$(PYTHON) -m pytest tests/db -v -s
 	
 .PHONY: e2e-test
 e2e-test: ## Run end-to-end tests against a live application stack
-	@echo "Running end-to-end tests..."
+	@echo "🔄 Running end-to-end tests..."
 	@ln -sf .env.test .env
-	@PROJECT_NAME=$(PROJECT_NAME) ENV=test poetry run python -m pytest tests/e2e
+	@PROJECT_NAME=$(PROJECT_NAME) ENV=test $(PYTHON) -m pytest tests/e2e -s
 
 .PHONY: build-test
 build-test: ## Test Docker image build without leaving artifacts
@@ -180,4 +182,53 @@ build-test: ## Test Docker image build without leaving artifacts
 
 .PHONY: test
 test: unit-test build-test db-test e2e-test ## Run the full test suite
+
+# ==============================================================================
+# Django Local Development (without Docker)
+# ==============================================================================
+
+.PHONY: run
+run: ## Launch Django development server locally
+	@if [ ! -f .env.dev ]; then \
+		echo "❌ Error: .env.dev file not found. Please run 'make setup' first."; \
+		exit 1; \
+	fi
+	@echo "🚀 Starting Django development server..."
+	@export $$(cat .env.dev | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py runserver
+
+.PHONY: django-shell
+django-shell: ## Start Django shell locally
+	@if [ ! -f .env.dev ]; then \
+		echo "❌ Error: .env.dev file not found. Please run 'make setup' first."; \
+		exit 1; \
+	fi
+	@echo "🐍 Starting Django shell..."
+	@export $$(cat .env.dev | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py shell
+
+.PHONY: local-migrate
+local-migrate: ## Run Django migrations locally
+	@if [ ! -f .env.dev ]; then \
+		echo "❌ Error: .env.dev file not found. Please run 'make setup' first."; \
+		exit 1; \
+	fi
+	@echo "🗄️ Running Django migrations locally..."
+	@export $$(cat .env.dev | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py migrate
+
+.PHONY: local-makemigrations
+local-makemigrations: ## Create Django migrations locally
+	@if [ ! -f .env.dev ]; then \
+		echo "❌ Error: .env.dev file not found. Please run 'make setup' first."; \
+		exit 1; \
+	fi
+	@echo "📝 Creating Django migrations locally..."
+	@export $$(cat .env.dev | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py makemigrations
+
+.PHONY: local-superuser
+local-superuser: ## Create Django superuser locally
+	@if [ ! -f .env.dev ]; then \
+		echo "❌ Error: .env.dev file not found. Please run 'make setup' first."; \
+		exit 1; \
+	fi
+	@echo "👤 Creating Django superuser locally..."
+	@export $$(cat .env.dev | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py createsuperuser
 
