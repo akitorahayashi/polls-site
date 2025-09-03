@@ -26,8 +26,10 @@ def e2e_setup() -> Generator[None, None, None]:
     # Define compose commands
     compose_up_command = docker_command + [
         "compose",
-        "-f", "docker-compose.yml",
-        "-f", "docker-compose.test.override.yml",
+        "-f",
+        "docker-compose.yml",
+        "-f",
+        "docker-compose.test.override.yml",
         "--project-name",
         project_name,
         "up",
@@ -36,8 +38,10 @@ def e2e_setup() -> Generator[None, None, None]:
     ]
     compose_down_command = docker_command + [
         "compose",
-        "-f", "docker-compose.yml",
-        "-f", "docker-compose.test.override.yml",
+        "-f",
+        "docker-compose.yml",
+        "-f",
+        "docker-compose.test.override.yml",
         "--project-name",
         project_name,
         "down",
@@ -54,8 +58,10 @@ def e2e_setup() -> Generator[None, None, None]:
         print("\n🏃 Running database migrations...")
         migrate_command = docker_command + [
             "compose",
-            "-f", "docker-compose.yml",
-            "-f", "docker-compose.test.override.yml",
+            "-f",
+            "docker-compose.yml",
+            "-f",
+            "docker-compose.test.override.yml",
             "--project-name",
             project_name,
             "exec",
@@ -95,8 +101,10 @@ def e2e_setup() -> Generator[None, None, None]:
         if not is_healthy:
             log_command = docker_command + [
                 "compose",
-                "-f", "docker-compose.yml",
-                "-f", "docker-compose.test.override.yml",
+                "-f",
+                "docker-compose.yml",
+                "-f",
+                "docker-compose.test.override.yml",
                 "--project-name",
                 project_name,
                 "logs",
