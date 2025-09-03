@@ -1,22 +1,15 @@
-import os
-
 import httpx
 import pytest
-from dotenv import load_dotenv
-
-# .envから環境変数を読み込む
-load_dotenv(".env")
 
 pytestmark = pytest.mark.asyncio
 
 
-async def test_polls_index_page_loads():
+async def test_polls_index_page_loads(page_url: str):
     """
     E2E test to ensure the main polls index page loads correctly.
     """
     # Arrange
-    web_port = os.getenv("TEST_PORT", "8002")
-    index_url = f"http://localhost:{web_port}/polls/"
+    index_url = f"{page_url}polls/"
 
     # Act
     async with httpx.AsyncClient(timeout=30) as client:

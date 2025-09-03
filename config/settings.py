@@ -11,18 +11,16 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
-from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# .envファイルが存在する場合に、そこから設定を読み込む
+# .envファイルが存在し、かつテスト環境でない場合に、そこから設定を読み込む
 env_path = BASE_DIR / ".env"
-if env_path.is_file():
-    load_dotenv(dotenv_path=env_path)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -86,7 +84,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": dj_database_url.config(
-        conn_max_age=int(os.getenv("DATABASE_CONN_MAX_AGE", 600)),
+        conn_max_age=int(os.getenv("DATABASE_CONN_MAX_AGE", 0)),
     )
 }
 
@@ -131,3 +129,5 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+if "pytest" in sys.modules:
+    EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
