@@ -8,97 +8,131 @@ import pytest
 from dotenv import load_dotenv
 
 
-@pytest.fixture(scope="session", autouse=True)
-def e2e_setup() -> Generator[None, None, None]:
+# Override pytest-django's autouse fixture to disable mail.outbox clearing for e2e tests
+@pytest.fixture(scope="function", autouse=True)
+def _dj_autoclear_mailbox():
+    """Override pytest-django's autoclear mailbox fixture to disable it for e2e tests."""
+    # Do nothing - we don't need mail.outbox clearing in e2e tests with external containers
+    pass
+
+
+@pytest.fixture(scope="session")
+def docker_server() -> Generator[str, None, None]:
     """
-    Manages the lifecycle of the application stack for end-to-end testing.
+    Sets up a live application stack using Docker Compose for end-to-end testing.
+
+    This fixture:
+    1. Starts Docker Compose services using the test configuration
+    2. Waits for the application to become healthy
+    3. Yields the base URL for tests
+    4. Cleans up containers after tests complete
     """
-    load_dotenv(".env.test")
-    web_port = os.getenv("WEB_PORT", "8000")
-    # ヘルスチェックURLを新しいエンドポイントに変更
-    health_url = f"http://localhost:{web_port}/health/"
-    project_name = "polls-test"
+    # Load environment variables
+    load_dotenv(".env")
 
-    # Determine if sudo should be used
-    use_sudo = os.getenv("SUDO") == "true"
-    docker_command = ["sudo", "docker"] if use_sudo else ["docker"]
+    # Get configuration from environment
+    project_name = os.getenv("PROJECT_NAME", "polls-site")
+    test_port = os.getenv("TEST_PORT", "8002")
+    web_host = os.getenv("WEB_HOST", "127.0.0.1")
 
-    # Define compose commands
-    compose_up_command = docker_command + [
+    # Docker Compose command with test configuration
+    compose_cmd = [
+        "docker",
         "compose",
+        "-f",
+        "docker-compose.yml",
+        "-f",
+        "docker-compose.test.override.yml",
         "--project-name",
-        project_name,
-        "up",
-        "-d",
-        "--build",
-    ]
-    compose_down_command = docker_command + [
-        "compose",
-        "--project-name",
-        project_name,
-        "down",
-        "-v",
-        "--remove-orphans",
+        f"{project_name}-test",
     ]
 
-    # Start services, ensuring cleanup on failure
-    print("\n🚀 Starting E2E services...")
+    base_url = f"http://{web_host}:{test_port}"
+    health_url = f"{base_url}/health/"
+
     try:
-        subprocess.run(compose_up_command, check=True)
+        print("\nStarting Docker Compose services for testing...")
 
-        # Run migrations
-        print("\n🏃 Running database migrations...")
-        migrate_command = docker_command + [
-            "compose",
-            "--project-name",
-            project_name,
-            "exec",
-            "-T",
-            "web",
-            "poetry",
-            "run",
-            "python",
-            "manage.py",
-            "migrate",
-            "--noinput",
-        ]
-        subprocess.run(migrate_command, check=True)
+        # Start containers
+        subprocess.run(
+            compose_cmd + ["up", "-d", "--build"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
 
-        # Health Check
+        print(f"⏳ Waiting for application to be ready at {health_url}...")
+
+        # Wait for application to be healthy
         start_time = time.time()
-        timeout = 120
+        timeout = 120  # Increased timeout for Docker startup
         is_healthy = False
+
+        # Improve healthcheck loop to sleep after each attempt and catch general exceptions
         while time.time() - start_time < timeout:
             try:
-                response = httpx.get(health_url, timeout=5)
-                if response.status_code == 200:
-                    try:
-                        if response.json().get("status") == "ok":
-                            print("✅ Application is healthy!")
-                            is_healthy = True
-                            break
-                    except ValueError:
-                        # JSON でない応答（起動途中など）
-                        pass
-                print("⏳ Application not yet healthy, retrying...")
-            except (httpx.RequestError, httpx.ConnectError):
-                print("⏳ Application not yet healthy, retrying...")
-            finally:
-                time.sleep(5)
+                response = httpx.get(health_url, timeout=10)
+                if (
+                    response.status_code == 200
+                    and response.json().get("status") == "ok"
+                ):
+                    print("✅ Application is healthy!")
+                    is_healthy = True
+                    break
+                else:
+                    print(
+                        f"⏳ Waiting for application... (status: {response.status_code})"
+                    )
+            except Exception as e:
+                print(f"⏳ Waiting for application... ({e.__class__.__name__})")
+            # Sleep between attempts to avoid tight loop
+            time.sleep(3)
 
         if not is_healthy:
-            log_command = docker_command + [
-                "compose",
-                "--project-name",
-                project_name,
-                "logs",
-            ]
-            subprocess.run(log_command)
-            pytest.fail(f"Application did not become healthy within {timeout} seconds.")
+            # Get logs for debugging
+            print("❌ Application failed to start. Getting logs...")
+            try:
+                logs_result = subprocess.run(
+                    compose_cmd + ["logs"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                print("--- Docker Compose Logs ---")
+                print(logs_result.stdout)
+                if logs_result.stderr:
+                    print("--- Docker Compose Errors ---")
+                    print(logs_result.stderr)
+            except subprocess.TimeoutExpired:
+                print("Timeout while getting logs")
 
-        yield
+            pytest.fail(
+                f"Application did not become healthy within {timeout} seconds. "
+                f"Check Docker Compose logs above."
+            )
+
+        print(f"🚀 E2E test environment ready at {base_url}")
+        yield base_url
 
     finally:
-        # Stop services
-        print("\n🛑 Stopping E2E services...")
-        subprocess.run(compose_down_command, check=False)
+        print("\n🛑 Stopping Docker Compose services...")
+        try:
+            subprocess.run(
+                compose_cmd + ["down", "--remove-orphans"],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            print("✅ Docker Compose services stopped successfully")
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+            print(f"⚠️ Warning: Failed to stop some containers: {e}")
+
+
+@pytest.fixture(scope="session")
+def page_url(docker_server: str) -> str:
+    """
+    Returns the base URL of the docker server.
+    """
+    return f"{docker_server}/"

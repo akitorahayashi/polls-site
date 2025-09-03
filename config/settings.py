@@ -19,18 +19,19 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-sys.path.append(str(BASE_DIR / "apps"))
+# .envファイルが存在し、かつテスト環境でない場合に、そこから設定を読み込む
+env_path = BASE_DIR / ".env"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-1y6#__=qkj=b3*a))u#w^9uxc6)2x3rj)20)h2@hzxlw@zjx03"
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS_ENV = os.environ.get("ALLOWED_HOSTS", "")
+ALLOWED_HOSTS_ENV = os.getenv("ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(",") if host.strip()]
 
 
@@ -83,7 +84,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": dj_database_url.config(
-        conn_max_age=int(os.getenv("DATABASE_CONN_MAX_AGE", 600)),
+        conn_max_age=int(os.getenv("DATABASE_CONN_MAX_AGE", 0)),
     )
 }
 
@@ -121,10 +122,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-STATIC_ROOT = BASE_DIR / "staticfiles"
+if "pytest" in sys.modules:
+    EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"

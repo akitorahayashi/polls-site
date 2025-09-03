@@ -12,7 +12,7 @@ WAIT_TIMEOUT=${WAIT_TIMEOUT:-60}
 echo "Waiting for database connection at ${DB_HOST}:${DB_PORT}..."
 
 count=0
-while ! nc -z "${DB_HOST}" "${DB_PORT}"; do
+while ! python -c "import socket; socket.create_connection(('${DB_HOST}', ${DB_PORT}), timeout=1).close()" 2>/dev/null; do
     count=$((count + 1))
     if [ ${count} -ge ${WAIT_TIMEOUT} ]; then
         echo "Error: Timed out waiting for database connection at ${DB_HOST}:${DB_PORT}" >&2
@@ -28,6 +28,12 @@ echo "Database is ready."
 echo "Applying database migrations..."
 python manage.py migrate --noinput
 
-# Execute the command passed to the script (e.g., gunicorn)
-echo "Starting application..."
-exec "$@"
+# Collect static files if required
+if [ "${COLLECT_STATIC:-0}" = "1" ]; then
+    echo "Collecting static files..."
+    python manage.py collectstatic --noinput
+fi
+
+# Start the application with Gunicorn for production
+echo "Starting Gunicorn server..."
+exec python -m gunicorn config.wsgi:application --bind 0.0.0.0:8000
