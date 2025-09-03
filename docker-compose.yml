@@ -50,8 +50,8 @@ services:
 
 volumes:
   postgres-db:
-    name: ${PROJECT_NAME:-polls-site}-postgres-db-${ENV:-dev}
+    name: ${PROJECT_NAME}-postgres-db-prod
     external: false
   static-volume:
-    name: ${PROJECT_NAME:-polls-site}-static-volume-${ENV:-dev}
+    name: ${PROJECT_NAME}-static-volume
     external: false

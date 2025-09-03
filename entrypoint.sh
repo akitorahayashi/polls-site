@@ -28,6 +28,12 @@ echo "Database is ready."
 echo "Applying database migrations..."
 python manage.py migrate --noinput
 
-# Execute the command passed to the script (e.g., gunicorn)
-echo "Starting application..."
-exec "$@"
+# Collect static files if required
+if [ "${COLLECT_STATIC:-0}" = "1" ]; then
+    echo "Collecting static files..."
+    python manage.py collectstatic --noinput
+fi
+
+# Start the application with Gunicorn for production
+echo "Starting Gunicorn server..."
+exec python -m gunicorn config.wsgi:application --bind 0.0.0.0:8000
