@@ -119,58 +119,6 @@ superuser-prod: ## [PROD] Create a Django superuser
 	@$(PROD_COMPOSE) exec web python manage.py createsuperuser
 
 # ==============================================================================
-# Testing and Code Quality
-# ==============================================================================
-
-.PHONY: format
-format: ## Format code with Black and fix Ruff issues
-	@echo "🎨 Formatting code with Black..."
-	@$(PYTHON) -m black .
-	@echo "🔧 Fixing code issues with Ruff..."
-	@$(PYTHON) -m ruff check . --fix
-
-.PHONY: lint
-lint: ## Check code format and lint issues without fixing
-	@echo "🔬 Checking code format with Black..."
-	@$(PYTHON) -m black --check .
-	@echo "🔍 Checking code issues with Ruff..."
-	@$(PYTHON) -m ruff check .
-
-.PHONY: unit-test
-unit-test: ## Run the fast, database-independent unit tests locally
-	@echo "🧪 Running unit tests..."
-	@$(PYTHON) -m pytest tests/unit -v -s
-
-.PHONY: db-test
-db-test: ## Run the slower, database-dependent tests locally
-	@echo "🗄️ Running database tests..."
-	@$(PYTHON) -m pytest tests/db -v -s
-	
-.PHONY: e2e-test
-e2e-test: ## Run end-to-end tests against a live application stack
-	@echo "🔄 Running end-to-end tests..."
-	@$(TEST_COMPOSE) up -d --build
-	@$(PYTHON) -m pytest tests/e2e -s
-	@$(TEST_COMPOSE) down
-
-.PHONY: build-test
-build-test: ## Test Docker image build without leaving artifacts
-	@echo "Testing Docker image build..."
-	@IMAGE_NAME="polls-site-build-test-$$(date +%s)"; \
-	if docker build -t "$$IMAGE_NAME" . --target production --no-cache; then \
-		echo "✅ Docker build test passed"; \
-		docker rmi "$$IMAGE_NAME" >/dev/null 2>&1 || true; \
-		exit 0; \
-	else \
-		echo "❌ Docker build test failed"; \
-		docker rmi "$$IMAGE_NAME" >/dev/null 2>&1 || true; \
-		exit 1; \
-	fi
-
-.PHONY: test
-test: unit-test build-test db-test e2e-test ## Run the full test suite
-
-# ==============================================================================
 # Django Local Development (without Docker)
 # ==============================================================================
 
@@ -219,3 +167,58 @@ local-superuser: ## Create Django superuser locally
 	@echo "👤 Creating Django superuser locally..."
 	@export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py createsuperuser
 
+# ==============================================================================
+# Code Quality
+# ==============================================================================
+
+.PHONY: format
+format: ## Format code with Black and fix Ruff issues
+	@echo "🎨 Formatting code with Black..."
+	@$(PYTHON) -m black .
+	@echo "🔧 Fixing code issues with Ruff..."
+	@$(PYTHON) -m ruff check . --fix
+
+.PHONY: lint
+lint: ## Check code format and lint issues without fixing
+	@echo "🔬 Checking code format with Black..."
+	@$(PYTHON) -m black --check .
+	@echo "🔍 Checking code issues with Ruff..."
+	@$(PYTHON) -m ruff check .
+
+# ==============================================================================
+# Testing
+# ==============================================================================
+
+.PHONY: unit-test
+unit-test: ## Run the fast, database-independent unit tests locally
+	@echo "🧪 Running unit tests..."
+	@$(PYTHON) -m pytest tests/unit -v -s
+
+.PHONY: db-test
+db-test: ## Run the slower, database-dependent tests locally
+	@echo "🗄️ Running database tests..."
+	@$(PYTHON) -m pytest tests/db -v -s
+	
+.PHONY: e2e-test
+e2e-test: ## Run end-to-end tests against a live application stack
+	@echo "🔄 Running end-to-end tests..."
+	@$(TEST_COMPOSE) up -d --build
+	@$(PYTHON) -m pytest tests/e2e -s
+	@$(TEST_COMPOSE) down
+
+.PHONY: build-test
+build-test: ## Test Docker image build without leaving artifacts
+	@echo "Testing Docker image build..."
+	@IMAGE_NAME="polls-site-build-test-$$(date +%s)"; \
+	if docker build -t "$$IMAGE_NAME" . --target production --no-cache; then \
+		echo "✅ Docker build test passed"; \
+		docker rmi "$$IMAGE_NAME" >/dev/null 2>&1 || true; \
+		exit 0; \
+	else \
+		echo "❌ Docker build test failed"; \
+		docker rmi "$$IMAGE_NAME" >/dev/null 2>&1 || true; \
+		exit 1; \
+	fi
+
+.PHONY: test
+test: unit-test build-test db-test e2e-test ## Run the full test suite

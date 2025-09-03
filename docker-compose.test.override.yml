@@ -14,13 +14,14 @@ services:
       - "${WEB_HOST:-127.0.0.1}:${TEST_PORT:-8002}:8000"
     environment:
       - DEBUG=True
-      - DJANGO_SETTINGS_MODULE=config.settings.test
+      - DJANGO_SETTINGS_MODULE=config.settings
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_TEST_DB_NAME}
       - POSTGRES_DB=${POSTGRES_TEST_DB_NAME}
     volumes:
       - .:/app
       - /app/.venv
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
   nginx:
-    ports:
-      - "${WEB_HOST:-127.0.0.1}:${TEST_PORT:-8002}:80"
+    profiles:
+      - disabled

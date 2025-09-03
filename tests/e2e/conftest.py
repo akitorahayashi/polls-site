@@ -14,10 +14,10 @@ def e2e_setup() -> Generator[None, None, None]:
     Manages the lifecycle of the application stack for end-to-end testing.
     """
     load_dotenv(".env")
-    web_port = os.getenv("WEB_PORT", "8000")
+    web_port = os.getenv("TEST_PORT", "8002")
     # ヘルスチェックURLを新しいエンドポイントに変更
     health_url = f"http://localhost:{web_port}/health/"
-    project_name = "polls-test"
+    project_name = f"{os.getenv('PROJECT_NAME', 'polls-site')}-test"
 
     # Determine if sudo should be used
     use_sudo = os.getenv("SUDO") == "true"
@@ -67,8 +67,6 @@ def e2e_setup() -> Generator[None, None, None]:
             "exec",
             "-T",
             "web",
-            "uv",
-            "run",
             "python",
             "manage.py",
             "migrate",

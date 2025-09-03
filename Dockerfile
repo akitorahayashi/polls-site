@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.cache \
     pip install uv
 
 # Copy dependency definition files  
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
 
 # ==============================================================================
 # Stage 2: Dev Dependencies
@@ -23,11 +23,12 @@ FROM base as dev-deps
 
 # Install system dependencies required for the application
 # - curl: used for debugging in the development container
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# - git: needed for git dependencies in pyproject.toml
+RUN apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/*
 
 # Install all dependencies, including development ones
 RUN --mount=type=cache,target=/root/.cache \
-    uv sync
+    uv sync --frozen
 
 # ==============================================================================
 # Stage 3: Production Dependencies
@@ -35,9 +36,12 @@ RUN --mount=type=cache,target=/root/.cache \
 # ==============================================================================
 FROM base as prod-deps
 
+# Install git for git dependencies in pyproject.toml
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 # Install only production dependencies
 RUN --mount=type=cache,target=/root/.cache \
-    uv sync --no-dev
+    uv sync --no-dev --frozen
 
 # ==============================================================================
 # Stage 4: Development
@@ -63,7 +67,6 @@ ENV PATH="/app/.venv/bin:${PATH}"
 
 # Copy application code
 COPY --chown=appuser:appgroup manage.py ./
-COPY --chown=appuser:appgroup apps/ ./apps/
 COPY --chown=appuser:appgroup config/ ./config/
 COPY --chown=appuser:appgroup pyproject.toml .
 COPY --chown=appuser:appgroup entrypoint.sh .
@@ -108,7 +111,6 @@ ENV PATH="/app/.venv/bin:${PATH}"
 
 # Copy only the necessary application code and configuration, excluding tests
 COPY --chown=appuser:appgroup manage.py ./
-COPY --chown=appuser:appgroup apps/ ./apps/
 COPY --chown=appuser:appgroup config/ ./config/
 COPY --chown=appuser:appgroup pyproject.toml .
 COPY --chown=appuser:appgroup entrypoint.sh .
