@@ -13,7 +13,7 @@ def e2e_setup() -> Generator[None, None, None]:
     """
     Manages the lifecycle of the application stack for end-to-end testing.
     """
-    load_dotenv(".env.test")
+    load_dotenv(".env")
     web_port = os.getenv("WEB_PORT", "8000")
     # ヘルスチェックURLを新しいエンドポイントに変更
     health_url = f"http://localhost:{web_port}/health/"
@@ -26,6 +26,8 @@ def e2e_setup() -> Generator[None, None, None]:
     # Define compose commands
     compose_up_command = docker_command + [
         "compose",
+        "-f", "docker-compose.yml",
+        "-f", "docker-compose.test.override.yml",
         "--project-name",
         project_name,
         "up",
@@ -34,6 +36,8 @@ def e2e_setup() -> Generator[None, None, None]:
     ]
     compose_down_command = docker_command + [
         "compose",
+        "-f", "docker-compose.yml",
+        "-f", "docker-compose.test.override.yml",
         "--project-name",
         project_name,
         "down",
@@ -50,12 +54,14 @@ def e2e_setup() -> Generator[None, None, None]:
         print("\n🏃 Running database migrations...")
         migrate_command = docker_command + [
             "compose",
+            "-f", "docker-compose.yml",
+            "-f", "docker-compose.test.override.yml",
             "--project-name",
             project_name,
             "exec",
             "-T",
             "web",
-            "poetry",
+            "uv",
             "run",
             "python",
             "manage.py",
@@ -89,6 +95,8 @@ def e2e_setup() -> Generator[None, None, None]:
         if not is_healthy:
             log_command = docker_command + [
                 "compose",
+                "-f", "docker-compose.yml",
+                "-f", "docker-compose.test.override.yml",
                 "--project-name",
                 project_name,
                 "logs",

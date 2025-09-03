@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-PROJECT_NAME := $(shell basename $(CURDIR))
+PROJECT_NAME := polls-site
 
 # ==============================================================================
 # Variables
@@ -11,9 +11,10 @@ POSTGRES_IMAGE ?= postgres:15
 # Docker Commands
 # ==============================================================================
 
-DEV_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=dev docker compose --project-name $(PROJECT_NAME)-dev
-PROD_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=prod docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
-TEST_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=test docker compose --project-name $(PROJECT_NAME)-test
+# Define compose file combinations
+DEV_COMPOSE := docker compose -f docker-compose.yml -f docker-compose.dev.override.yml --project-name $(PROJECT_NAME)-dev
+PROD_COMPOSE := docker compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+TEST_COMPOSE := docker compose -f docker-compose.yml -f docker-compose.test.override.yml --project-name $(PROJECT_NAME)-test
 
 # ==============================================================================
 # Help
@@ -36,17 +37,15 @@ help: ## Show this help message
 PYTHON := ./.venv/bin/python
 
 .PHONY: setup
-setup: ## Install dependencies and create .env files from .env.example
+setup: ## Install dependencies and create .env file from .env.example
 	@echo "🐍 Installing python dependencies with uv..."
-	@uv sync --extra dev
-	@echo "📄 Creating .env files..."
-	@for env in dev prod test; do \
-		if [ ! -f .env.$$env ] && [ -f .env.example ]; then \
-			echo "Creating .env.$$env from .env.example..."; \
-			cp .env.example .env.$$env; \
-		fi; \
-		done
-	@echo "✅ Setup complete. Dependencies are installed and .env files are ready."
+	@uv sync
+	@echo "📄 Creating .env file..."
+	@if [ ! -f .env ] && [ -f .env.example ]; then \
+		echo "Creating .env from .env.example..."; \
+		cp .env.example .env; \
+	fi
+	@echo "✅ Setup complete. Dependencies are installed and .env file is ready."
 
 # ==============================================================================
 # Development Environment Commands
@@ -54,49 +53,41 @@ setup: ## Install dependencies and create .env files from .env.example
 
 .PHONY: up
 up: ## Build images and start dev containers
-	@ln -sf .env.dev .env
 	@echo "Building images and starting DEV containers..."
 	@$(DEV_COMPOSE) up --build -d
 
 .PHONY: down
 down: ## Stop dev containers
-	@ln -sf .env.dev .env
 	@echo "Stopping DEV containers..."
 	@$(DEV_COMPOSE) down --remove-orphans
 
 .PHONY: up-prod
 up-prod: ## Build images and start prod-like containers
-	@ln -sf .env.prod .env
 	@echo "Starting up PROD-like services..."
 	@$(PROD_COMPOSE) up -d --build
 
 .PHONY: down-prod
 down-prod: ## Stop prod-like containers
-	@ln -sf .env.prod .env
 	@echo "Shutting down PROD-like services..."
 	@$(PROD_COMPOSE) down --remove-orphans
 
 .PHONY: rebuild
 rebuild: ## Rebuild services, pulling base images, without cache, and restart them
 	@echo "Rebuilding all services with --no-cache and --pull..."
-	@ln -sf .env.dev .env
 	@$(DEV_COMPOSE) up -d --build --no-cache --pull always --force-recreate
 
 .PHONY: clean
 clean: ## Completely remove dev containers, volumes, and orphans
-	@ln -sf .env.dev .env
 	@echo "Cleaning DEV containers, volumes, and orphans..."
 	@$(DEV_COMPOSE) down -v --remove-orphans
 
 .PHONY: logs
 logs: ## Show and follow dev container logs
-	@ln -sf .env.dev .env
 	@echo "Showing DEV logs..."
 	@$(DEV_COMPOSE) logs -f
 
 .PHONY: shell
 shell: ## Start a shell inside the dev 'web' container
-	@ln -sf .env.dev .env
 	@$(DEV_COMPOSE) ps --status=running --services | grep -q '^web$$' || { echo "web container is not running. Please run 'make up' first." >&2; exit 1; }
 	@$(DEV_COMPOSE) exec web /bin/sh
 
@@ -105,30 +96,25 @@ shell: ## Start a shell inside the dev 'web' container
 # ==============================================================================
 .PHONY: makemigrations
 makemigrations: ## [DEV] Create migration files
-	@ln -sf .env.dev .env
 	@$(DEV_COMPOSE) exec web uv run python manage.py makemigrations
 
 .PHONY: migrate
 migrate: ## [DEV] Run database migrations
-	@ln -sf .env.dev .env
 	@echo "Running DEV database migrations..."
 	@$(DEV_COMPOSE) exec web uv run python manage.py migrate
 
 .PHONY: superuser
 superuser: ## [DEV] Create a Django superuser
-	@ln -sf .env.dev .env
 	@echo "Creating DEV superuser..."
 	@$(DEV_COMPOSE) exec web uv run python manage.py createsuperuser
 
 .PHONY: migrate-prod
 migrate-prod: ## [PROD] Run database migrations
-	@ln -sf .env.prod .env
 	@echo "Running PROD-like database migrations..."
 	@$(PROD_COMPOSE) exec web python manage.py migrate
 
 .PHONY: superuser-prod
 superuser-prod: ## [PROD] Create a Django superuser
-	@ln -sf .env.prod .env
 	@echo "Creating PROD-like superuser..."
 	@$(PROD_COMPOSE) exec web python manage.py createsuperuser
 
@@ -163,8 +149,9 @@ db-test: ## Run the slower, database-dependent tests locally
 .PHONY: e2e-test
 e2e-test: ## Run end-to-end tests against a live application stack
 	@echo "🔄 Running end-to-end tests..."
-	@ln -sf .env.test .env
-	@PROJECT_NAME=$(PROJECT_NAME) ENV=test $(PYTHON) -m pytest tests/e2e -s
+	@$(TEST_COMPOSE) up -d --build
+	@$(PYTHON) -m pytest tests/e2e -s
+	@$(TEST_COMPOSE) down
 
 .PHONY: build-test
 build-test: ## Test Docker image build without leaving artifacts
@@ -189,46 +176,46 @@ test: unit-test build-test db-test e2e-test ## Run the full test suite
 
 .PHONY: run
 run: ## Launch Django development server locally
-	@if [ ! -f .env.dev ]; then \
-		echo "❌ Error: .env.dev file not found. Please run 'make setup' first."; \
+	@if [ ! -f .env ]; then \
+		echo "❌ Error: .env file not found. Please run 'make setup' first."; \
 		exit 1; \
 	fi
 	@echo "🚀 Starting Django development server..."
-	@export $$(cat .env.dev | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py runserver
+	@export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py runserver
 
 .PHONY: django-shell
 django-shell: ## Start Django shell locally
-	@if [ ! -f .env.dev ]; then \
-		echo "❌ Error: .env.dev file not found. Please run 'make setup' first."; \
+	@if [ ! -f .env ]; then \
+		echo "❌ Error: .env file not found. Please run 'make setup' first."; \
 		exit 1; \
 	fi
 	@echo "🐍 Starting Django shell..."
-	@export $$(cat .env.dev | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py shell
+	@export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py shell
 
 .PHONY: local-migrate
 local-migrate: ## Run Django migrations locally
-	@if [ ! -f .env.dev ]; then \
-		echo "❌ Error: .env.dev file not found. Please run 'make setup' first."; \
+	@if [ ! -f .env ]; then \
+		echo "❌ Error: .env file not found. Please run 'make setup' first."; \
 		exit 1; \
 	fi
 	@echo "🗄️ Running Django migrations locally..."
-	@export $$(cat .env.dev | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py migrate
+	@export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py migrate
 
 .PHONY: local-makemigrations
 local-makemigrations: ## Create Django migrations locally
-	@if [ ! -f .env.dev ]; then \
-		echo "❌ Error: .env.dev file not found. Please run 'make setup' first."; \
+	@if [ ! -f .env ]; then \
+		echo "❌ Error: .env file not found. Please run 'make setup' first."; \
 		exit 1; \
 	fi
 	@echo "📝 Creating Django migrations locally..."
-	@export $$(cat .env.dev | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py makemigrations
+	@export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py makemigrations
 
 .PHONY: local-superuser
 local-superuser: ## Create Django superuser locally
-	@if [ ! -f .env.dev ]; then \
-		echo "❌ Error: .env.dev file not found. Please run 'make setup' first."; \
+	@if [ ! -f .env ]; then \
+		echo "❌ Error: .env file not found. Please run 'make setup' first."; \
 		exit 1; \
 	fi
 	@echo "👤 Creating Django superuser locally..."
-	@export $$(cat .env.dev | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py createsuperuser
+	@export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) && $(PYTHON) manage.py createsuperuser
 
